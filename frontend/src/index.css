@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primitives Tokens  */
+    --clr-white: 0 0% 100%;
+    --clr-dark-grey: 0 0% 10%;
+    /* Sementics Tokens */
+    --foreground: var(--clr-dark-grey);
+    --background: var(--clr-white);
+
+    --radius: 0.5rem;
+    --gap: 1rem;
+
+    
+    
+  }
+}

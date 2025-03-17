@@ -1,0 +1,16 @@
+controllers:
+    resource:
+        path: ../src/Controller/
+        namespace: App\Controller
+    type: attribute
+user_register:
+    path: /register
+    controller: App\Controller\UserController::register
+
+user_confirm:
+    path: /confirm/{id}
+    controller: App\Controller\UserController::confirm
+
+user_login:
+    path: /login
+    controller: App\Controller\UserController::login
