@@ -1,20 +1,48 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
-    /* Primitives Tokens  */
-    --clr-white: 0 0% 100%;
-    --clr-dark-grey: 0 0% 10%;
-    /* Sementics Tokens */
-    --foreground: var(--clr-dark-grey);
-    --background: var(--clr-white);
+    --clr-dark: #0D0D0D;
+    --clr-light: #FDFDFD;
+    --clr-gray:#878787;
+    --clr-blue: #0070F9;
 
-    --radius: 0.5rem;
-    --gap: 1rem;
+    --custom-bg-color: var(--clr-dark);
+    --custom-text-color: var(--clr-light);   
+  }
+}
 
-    
-    
+@layer utilities {
+  .bg-custom {
+    background-color: var(--custom-bg-color);
+  }
+  .text-custom {
+    color: var(--custom-text-color);
+  }
+  .bg-custom-inverse {
+    background-color: var(--custom-text-color);
+  }
+  .text-custom-inverse {
+    color: var(--custom-bg-color);
+  }
+
+  .bg-custom-gray {
+    background-color: var(--clr-gray);
+  }
+
+  .text-custom-gray {
+    color: var(--clr-gray);
+  }
+  
+  .border-custom-gray {
+    border-color: var(--clr-gray);
+  }
+
+  .bg-custom-blue {
+    background-color: var(--clr-blue);
+  }
+
+  .text-custom-blue {
+    color: var(--clr-blue);
   }
 }

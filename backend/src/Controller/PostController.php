@@ -13,45 +13,45 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use App\Repository\PostRepository;
 
 final class PostController extends AbstractController
 {
-    #[Route('/posts', name: 'app_post', methods: ['GET'], format: 'json')]
-    public function index(EntityManagerInterface $entityManager): JsonResponse
+    #[Route('/posts', name: 'posts.index', methods: ['GET'])]
+    public function index(Request $request, PostRepository $postRepository): Response
     {
-        // Retrieve all posts from the database, ordered by creation date descending
-        $posts = $entityManager->getRepository(Post::class)->findBy([], ['created_at' => 'DESC']);
-
-        // Format the posts as an array
-        $formattedPosts = array_map(function ($post) {
-            return [
-                'id' => $post->getId(),
-                'content' => $post->getContent(),
-                'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
-            ];
-        }, $posts);
-
-        // Return the posts as a JSON response
-        return $this->json(['posts' => $formattedPosts]);
+        $page = (int) $request->query->get('page', 1);
+        $offset = ($page - 1) * 2;
+    
+        $paginator = $postRepository->paginateAllOrderedByLatest($offset, 2);
+        $totalPostsCount = $paginator->count();
+    
+        $previousPage = $page > 1 ? $page - 1 : null;
+        $nextPage = ($offset + 2) < $totalPostsCount ? $page + 1 : null;
+    
+        return $this->json([
+            'posts' => $paginator,
+            'previous_page' => $previousPage,
+            'next_page' => $nextPage
+        ]);
     }
 
-        #[Route('/posts', name: 'posts.create', methods: ['POST'], format: 'json')]
-        public function create(Request $request, ValidatorInterface $validator, PostService $postService, SerializerInterface $serializer): Response
-        {
-            $data = json_decode($request->getContent(), true);
-            $content = $data['content'] ?? null;
+    #[Route('/posts', name: 'posts.create', methods: ['POST'], format: 'json')]
+    public function create(Request $request, ValidatorInterface $validator, PostService $postService): Response
+    {
+        $data = json_decode($request->getContent(), true);
+        $content = $data['content'] ?? null;
 
-            $payload = new CreatePostPayload();
-            $payload->setContent($content);
+        $payload = new CreatePostPayload();
+        $payload->setContent($content);
 
-            $errors = $validator->validate($payload);
-            if (count($errors) > 0) {
-                return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
-
-            $postService->create($payload);
-
-            return new Response('', Response::HTTP_CREATED);
+        $errors = $validator->validate($payload);
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        
+
+        $postService->create($payload);
+
+        return new Response('', Response::HTTP_CREATED);
+    }
 }
