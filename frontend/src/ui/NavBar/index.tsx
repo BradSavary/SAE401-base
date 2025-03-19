@@ -3,35 +3,36 @@ import { FeedIcon} from '../NavBarIcon/feedS';
 import { WriteIcon} from '../NavBarIcon/write';
 import { LikeIcon} from '../NavBarIcon/like';
 import { AccountIcon} from '../NavBarIcon/account';
+import {Link} from 'react-router-dom';
 
 export function NavBar(){
     return (
         <nav className="bg-black text-custom p-4 bottom-0 w-full fixed">
             <ul className="flex justify-between ">
                 <li>
-                    <a href="#" className="">
+                    <Link to="/" className="">
                         <FeedIcon className="h-8 w-8" alt="Feed"></FeedIcon>
-                    </a>
+                    </Link>
                 </li>
                 <li>
-                    <a href="#" className="">
+                    <Link to="/explore" className="">
                         <ExploreIcon className="h-8 w-8" alt="Explore"></ExploreIcon>
-                    </a>
+                    </Link>
                 </li>
                 <li>
-                    <a href="#" className="">
+                    <Link to="/write" className="">
                         <WriteIcon className="h-8 w-8" alt="Write"></WriteIcon>
-                    </a>
+                    </Link>
                 </li>
                 <li>
-                    <a href="#" className="">
+                    <Link to="/like" className="">
                         <LikeIcon className="h-8 w-8" alt="Like"></LikeIcon>
-                    </a>
+                    </Link>
                 </li>
                 <li>
-                    <a href="#" className="">
+                    <Link to="/account" className="">
                         <AccountIcon className="h-8 w-8" alt="Account"></AccountIcon>
-                    </a>
+                    </Link>
                 </li>
             </ul>
         </nav>

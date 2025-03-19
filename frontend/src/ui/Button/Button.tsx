@@ -8,6 +8,7 @@ const buttonStyles = cva(
             variant: {
                 primary: 'cursor-pointer bg-custom-inverse text-custom-inverse w-full px-4 py-2 rounded-full',
                 secondary: 'cursor-pointer bg-custom-blue text-custom w-full px-4 py-3 rounded-full',
+                tertiary: 'cursor-pointer bg-custom-inverse w-fit text-custom-inverse px-5 py-2 rounded-full',
             }
         },
         defaultVariants: {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, JSX } from 'react';
 import { fetchFeedPosts } from '../data/post';
 import { Post } from '../components/Post/Post';
-import {timeAgo} from '../lib/utils';
+import { timeAgo } from '../lib/utils';
 
 interface PostData {
   id: number;
@@ -17,6 +17,13 @@ function Feed(): JSX.Element {
 
   useEffect(() => {
     async function loadPosts() {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setError('No valid token found. Please log in.');
+        setLoading(false);
+        return;
+      }
+
       try {
         const postsData = await fetchFeedPosts();
         setPosts(postsData);
@@ -40,7 +47,7 @@ function Feed(): JSX.Element {
 
   return (
     <section className='bg-custom pb-15'>
-    {posts.map(post => (
+      {posts.map(post => (
         <Post
           key={post.id}
           username={post.username}
@@ -48,7 +55,7 @@ function Feed(): JSX.Element {
           date={timeAgo(new Date(post.created_at))}
         />
       ))}
-      </section>
+    </section>
   );
 }
 

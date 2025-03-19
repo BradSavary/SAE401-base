@@ -10,6 +10,8 @@ import { Welcome } from './routes/welcome';
 import { Register } from './routes/register';
 import { Login } from './routes/login';
 
+import { Write } from './routes/write';
+
 import './index.css';
 
 const router = createBrowserRouter([
@@ -22,6 +24,10 @@ const router = createBrowserRouter([
         element: <Feed />,
         loader: FeedLoader
       },
+      {
+        path: 'write',
+        element: <Write />
+      }
     ],
   },
   {

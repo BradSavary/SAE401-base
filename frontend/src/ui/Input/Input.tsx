@@ -7,6 +7,7 @@ const inputStyles = cva(
         variants: {
             variant: {
                 primary: 'bg-custom text-custom border border-custom-gray w-full px-4 py-4 rounded-md focus:ring-2 focus:ring-custom focus:border-transparent',
+                secondary: 'bg-custom text-custom w-full h-auto focus:border-none resize-none white-space-pre-wrap',
             }
         },
         defaultVariants: {

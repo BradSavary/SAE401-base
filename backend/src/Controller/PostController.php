@@ -53,7 +53,6 @@ final class PostController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         $post = new Post();
-        $post->setUser($data['user']);
         $post->setContent($data['content']);
         $post->setCreatedAt(new \DateTime());
 

@@ -6,6 +6,7 @@ import { MetaIcon } from "../../ui/LogoIcon/Meta";
 import Input from "../../ui/Input/Input";
 import { ArrowIcon } from "../../ui/Icon/arrow";
 import { apiRequest } from '../../lib/api-request';
+import PasswordStrength from '../../ui/Password/PasswordStrength';
 
 export function RegisterForm() {
     const [username, setUsername] = useState('');
@@ -65,7 +66,7 @@ export function RegisterForm() {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
-                <h2 className="text-custom">Force: <span className="text-green-700">Low</span></h2>
+                <PasswordStrength password={password} />
                 <Button variant="secondary" onClick={handleRegister}>Sign up</Button>
             </div>
             <MetaIcon className="absolute bottom-0" size="xlarge" alt="Meta-logo" />

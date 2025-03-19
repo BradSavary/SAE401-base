@@ -69,7 +69,7 @@ class UserController extends AbstractController
             return new Response('Email not verified', Response::HTTP_FORBIDDEN);
         }
 
-        return new JsonResponse([ 'message' => 'User is logged in']);
+        return new JsonResponse([ 'message' => 'User is logged in', 'api_token' => $user->getApiToken(), "username"=> $user->getUsername(), "email"=> $user->getEmail(), "user_id"=> $user->getId()], Response::HTTP_OK);
     }
 
     #[Route('/user/update/{id}', name: 'user_update', methods: ['PUT'])]

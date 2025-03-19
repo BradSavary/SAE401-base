@@ -14,14 +14,21 @@ export function LoginForm() {
 
     const handleLogin = async () => {
         try {
-            const response = await apiRequest<{ token: string }>('/login', {
+            const response = await apiRequest<{ api_token: string; email: string; username: string; user_id: string }>('/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ email, password }),
             });
-            localStorage.setItem('accessToken', response.token);
+            console.log('Login response:', response);
+            localStorage.setItem('accessToken', response.api_token);
+            localStorage.setItem('user', JSON.stringify({
+                api_token: response.api_token,
+                email: response.email,
+                username: response.username,
+                user_id: response.user_id
+            }));
             alert('Login successful!');
             navigate('/feed'); // Redirigez vers la page de tableau de bord ou une autre page après la connexion
         } catch (error) {
