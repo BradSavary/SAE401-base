@@ -15,8 +15,8 @@ export async function fetchOurTeams(teamName: string): Promise<any> {
     return data[teamName];
 }
 
-export async function fetchHomePosts(): Promise<any> {
-    let answer = await fetch('http://localhost:8080/posts');
-    let data: HomePostData = await answer.json();
-    return data;
-}
+// export async function fetchHomePosts(): Promise<any> {
+//     let answer = await fetch('http://localhost:8080/posts');
+//     let data: HomePostData = await answer.json();
+//     return data;
+// }

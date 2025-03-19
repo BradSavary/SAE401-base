@@ -15,7 +15,6 @@ security:
         main:
             access_token:
                 token_handler: App\Security\AccessTokenHandler
-
         api:
             pattern: ^/api
             stateless: true

@@ -4,7 +4,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import Root from './routes/root';
 import { Feed } from './routes/feed';
-import { fetchHomePosts as HomeLoader } from './lib/loaders';
+import { fetchFeedPosts as FeedLoader } from './data/post';
 
 import { Welcome } from './routes/welcome';
 import { Register } from './routes/register';
@@ -20,7 +20,7 @@ const router = createBrowserRouter([
       {
         path: 'feed',
         element: <Feed />,
-        loader: HomeLoader
+        loader: FeedLoader
       },
     ],
   },
