@@ -1,17 +1,55 @@
+import React, { useEffect, useState, JSX } from 'react';
+import { fetchFeedPosts } from '../data/post';
 import { Post } from '../components/Post/Post';
-import { useLoaderData } from "react-router-dom";
-import { fetchFeedPosts } from "../data/post";
+import {timeAgo} from '../lib/utils';
 
-export async function loader(){
-    const pricingdata = await fetchFeedPosts();
-    return pricingdata;
+interface PostData {
+  id: number;
+  username: string;
+  content: string;
+  created_at: string;
 }
 
-export function Feed(){
-    const data = useLoaderData();
-    return (
-        <div className="flex flex-col items-center h-screen overflow-scroll pb-16">
-          <Post {...data} ></Post>
-        </div>
-    )
+function Feed(): JSX.Element {
+  const [posts, setPosts] = useState<PostData[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadPosts() {
+      try {
+        const postsData = await fetchFeedPosts();
+        setPosts(postsData);
+      } catch (error) {
+        setError('Failed to load posts');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPosts();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
+
+  return (
+    <section className='bg-custom pb-15'>
+    {posts.map(post => (
+        <Post
+          key={post.id}
+          username={post.username}
+          content={post.content}
+          date={timeAgo(new Date(post.created_at))}
+        />
+      ))}
+      </section>
+  );
 }
+
+export { Feed };

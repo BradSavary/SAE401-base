@@ -54,4 +54,8 @@
   .bg-custom-light-gray {
     background-color: var(--clr-light-gray);
   }
+
+  .border-custome-light-gray{
+    border-color: var(--clr-light-gray);
+  }
 }
