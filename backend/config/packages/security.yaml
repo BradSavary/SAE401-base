@@ -7,14 +7,25 @@ security:
             entity:
                 class: App\Entity\User
                 property: email
+        api_user_provider:
+            entity:
+                class: App\Entity\User
+                property: apiToken
+
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+        api:
+            pattern: ^/
+            provider: api_user_provider
+            custom_authenticator: App\Security\APIAuthentificator
+            stateless: true
+            lazy: true
 
-        main:
-            access_token:
-                token_handler: App\Security\AccessTokenHandler
+        # main:
+        #     access_token:
+        #         token_handler: App\Security\AccessTokenHandler
 
 
             # activate different ways to authenticate
@@ -29,8 +40,8 @@ security:
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
         - { path: ^/confirm, roles: PUBLIC_ACCESS }
-        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/, roles: PUBLIC_ACCESS }
+        - { path: ^/api, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:

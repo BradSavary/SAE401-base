@@ -14,8 +14,8 @@ use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
-use App\Entity\AccessToken;
+use Symfony\Component\Mime\Message;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class UserController extends AbstractController
 {
@@ -30,6 +30,7 @@ class UserController extends AbstractController
         $hashedPassword = $passwordHasher->hashPassword($user, $data['password']);
         $user->setPassword($hashedPassword);
         $user->setIsVerified(false);
+        $user->setApiToken(bin2hex(random_bytes(60)));
 
         $entityManager->persist($user);
         $entityManager->flush();
@@ -67,21 +68,8 @@ class UserController extends AbstractController
         if (!$user->getIsVerified()) {
             return new Response('Email not verified', Response::HTTP_FORBIDDEN);
         }
-        
-        // Generate a token
-        $token = bin2hex(random_bytes(32));
-        $expiresAt = new \DateTime('+1 hour');
 
-        // Store the token in the database
-        $accessToken = new AccessToken();
-        $accessToken->setToken($token);
-        $accessToken->setUser($user->getId());
-        $accessToken->setExpiresAt($expiresAt);
-
-        $entityManager->persist($accessToken);
-        $entityManager->flush();
-
-        return new JsonResponse(['token' => $token, 'message' => 'User is logged in']);
+        return new JsonResponse([ 'message' => 'User is logged in']);
     }
 
     #[Route('/user/update/{id}', name: 'user_update', methods: ['PUT'])]
@@ -106,4 +94,11 @@ public function updateUser(int $id, Request $request, EntityManagerInterface $en
 
     return new Response('User updated successfully', Response::HTTP_OK);
 }
+
+    #[Route('/api/user', 'api_user', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function me(): Response
+    {
+        return $this->json($this->getUser());
+    }
 }
