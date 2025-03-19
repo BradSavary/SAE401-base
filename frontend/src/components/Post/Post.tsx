@@ -1,6 +1,5 @@
 import React, { JSX } from 'react';
 
-
 interface PostProps {
   username: string;
   content: string;
@@ -19,5 +18,5 @@ function Post({ username, content, date }: PostProps): JSX.Element {
       </div>
     </div>
   );
-};
+}; 
 export { Post };
