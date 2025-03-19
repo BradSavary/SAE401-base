@@ -14,3 +14,6 @@ user_confirm:
 user_login:
     path: /login
     controller: App\Controller\UserController::login
+
+api_login_check:
+    path: /api/login_check

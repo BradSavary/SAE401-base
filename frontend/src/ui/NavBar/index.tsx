@@ -6,7 +6,7 @@ import { AccountIcon} from '../NavBarIcon/account';
 
 export function NavBar(){
     return (
-        <nav className="bg-black text-custom p-4 absolute bottom-0 w-full">
+        <nav className="bg-black text-custom p-4 bottom-0 w-full fixed">
             <ul className="flex justify-between ">
                 <li>
                     <a href="#" className="">

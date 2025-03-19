@@ -13,7 +13,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
-
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use App\Entity\AccessToken;
 
 class UserController extends AbstractController
 {
@@ -36,7 +38,7 @@ class UserController extends AbstractController
             ->from('no-reply@example.com')
             ->to($user->getEmail())
             ->subject('Please Confirm your Email')
-            ->html('<p>Click <a href="http://localhost:8787/confirm/'.$user->getId().'">here</a> to confirm your email.</p>');
+            ->html('<p>Click <a href="http://localhost:8080/confirm/'.$user->getId().'">here</a> to confirm your email.</p>');
 
         $mailer->send($email);
 
@@ -65,11 +67,21 @@ class UserController extends AbstractController
         if (!$user->getIsVerified()) {
             return new Response('Email not verified', Response::HTTP_FORBIDDEN);
         }
+        
+        // Generate a token
+        $token = bin2hex(random_bytes(32));
+        $expiresAt = new \DateTime('+1 hour');
 
-        // Generate a token or start a session here
+        // Store the token in the database
+        $accessToken = new AccessToken();
+        $accessToken->setToken($token);
+        $accessToken->setUser($user->getId());
+        $accessToken->setExpiresAt($expiresAt);
 
+        $entityManager->persist($accessToken);
+        $entityManager->flush();
 
-        return new Response('User logged in.', Response::HTTP_OK);
+        return new JsonResponse(['token' => $token, 'message' => 'User is logged in']);
     }
 
     #[Route('/user/update/{id}', name: 'user_update', methods: ['PUT'])]

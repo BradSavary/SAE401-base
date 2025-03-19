@@ -19,7 +19,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement>, Varian
     placeholder?: string;
 }
 
-const Input: React.FC<InputProps> = ({ variant, className, placeholder, ...props }) => {
+const Input = ({ variant, className, placeholder, ...props }: InputProps) => {
     return (
         <input className={inputStyles({ variant, className })} placeholder={placeholder} {...props} />
     );

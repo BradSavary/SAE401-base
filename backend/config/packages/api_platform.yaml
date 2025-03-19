@@ -1,0 +1,8 @@
+api_platform:
+    title: YOUR API
+    description: 'Your API description'
+    version: 1.0.0
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']

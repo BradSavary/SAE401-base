@@ -6,6 +6,7 @@
     --clr-light: #FDFDFD;
     --clr-gray:#878787;
     --clr-blue: #0070F9;
+    --clr-light-gray: #cecece;
 
     --custom-bg-color: var(--clr-dark);
     --custom-text-color: var(--clr-light);   
@@ -44,5 +45,13 @@
 
   .text-custom-blue {
     color: var(--clr-blue);
+  }
+
+  .text-custom-light-gray {
+    color: var(--clr-light-gray);
+  }
+
+  .bg-custom-light-gray {
+    background-color: var(--clr-light-gray);
   }
 }
