@@ -20,36 +20,57 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class UserController extends AbstractController
 {
     #[Route('/register', name: 'register', methods: ['POST'])]
-    public function register(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager, MailerInterface $mailer): Response
+public function register(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager, MailerInterface $mailer): Response
+{
+    $data = json_decode($request->getContent(), true);
+
+    $user = new User();
+    $user->setUsername($data['username']);
+    $user->setEmail($data['email']);
+    $hashedPassword = $passwordHasher->hashPassword($user, $data['password']);
+    $user->setPassword($hashedPassword);
+    $user->setIsVerified(false);
+    $user->setApiToken(bin2hex(random_bytes(60)));
+
+    // Générer un code de confirmation
+    $confirmationCode = random_int(100000, 999999);
+    $user->setConfirmationCode($confirmationCode);
+
+    $entityManager->persist($user);
+    $entityManager->flush();
+
+    $email = (new Email())
+        ->from('no-reply@example.com')
+        ->to($user->getEmail())
+        ->subject('Please Confirm your Email')
+        ->html('<p>Your confirmation code is: '.$confirmationCode.'</p>');
+
+    $mailer->send($email);
+
+    return new Response('User registered', Response::HTTP_CREATED);
+}
+
+    // #[Route('/confirm/{id}', name: 'confirm', methods: ['GET'])]
+    // public function confirm(User $user, EntityManagerInterface $entityManager): Response
+    // {
+    //     $user->setIsVerified(true);
+    //     $entityManager->flush();
+
+    //     return new Response('Email confirmed', Response::HTTP_OK);
+    // }
+
+    #[Route('/confirm', name: 'confirm_by_code', methods: ['POST'])]
+    public function confirmByCode(Request $request, EntityManagerInterface $entityManager): Response
     {
         $data = json_decode($request->getContent(), true);
+        $user = $entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
 
-        $user = new User();
-        $user->setUsername($data['username']);
-        $user->setEmail($data['email']);
-        $hashedPassword = $passwordHasher->hashPassword($user, $data['password']);
-        $user->setPassword($hashedPassword);
-        $user->setIsVerified(false);
-        $user->setApiToken(bin2hex(random_bytes(60)));
+        if (!$user || $user->getConfirmationCode() !== $data['code']) {
+            return new Response('Invalid confirmation code', Response::HTTP_BAD_REQUEST);
+        }
 
-        $entityManager->persist($user);
-        $entityManager->flush();
-
-        $email = (new Email())
-            ->from('no-reply@example.com')
-            ->to($user->getEmail())
-            ->subject('Please Confirm your Email')
-            ->html('<p>Click <a href="http://localhost:8080/confirm/'.$user->getId().'">here</a> to confirm your email.</p>');
-
-        $mailer->send($email);
-
-        return new Response('User registered', Response::HTTP_CREATED);
-    }
-
-    #[Route('/confirm/{id}', name: 'confirm', methods: ['GET'])]
-    public function confirm(User $user, EntityManagerInterface $entityManager): Response
-    {
         $user->setIsVerified(true);
+        $user->setConfirmationCode(null); // Optionally, clear the confirmation code after successful verification
         $entityManager->flush();
 
         return new Response('Email confirmed', Response::HTTP_OK);

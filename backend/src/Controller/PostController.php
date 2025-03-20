@@ -14,6 +14,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Security;
 use App\Repository\PostRepository;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class PostController extends AbstractController
 {
@@ -47,21 +49,23 @@ final class PostController extends AbstractController
         ]);
     }
 
-    #[Route('/posts', name: 'posts.create', methods: ['POST'], format: 'json')]
-    public function create(Request $request, EntityManagerInterface $entityManager): Response
-    {
-        $data = json_decode($request->getContent(), true);
+    #[Route('/posts', name: 'posts.create', methods: ['POST'])]
+    public function create(
+        Request $request,
+        SerializerInterface $serializer,
+        ValidatorInterface $validator,
+        PostService $postService
+    ): Response {
+        $payload = $serializer->deserialize($request->getContent(), CreatePostPayload::class, 'json');
 
-        $post = new Post();
-        $post->setContent($data['content']);
-        $post->setCreatedAt(new \DateTime());
+        $errors = $validator->validate($payload);
+        if (count($errors) > 0) {
+            return $this->json($errors, Response::HTTP_BAD_REQUEST);
+        }
 
-        $user = $this->getUser();
-        $post->setUser($user);
+        // Appel au service PostService pour créer le post
+        $postService->create($payload);
 
-        $entityManager->persist($post);
-        $entityManager->flush();
-
-        return new JsonResponse(['status' => 'Post created!'], Response::HTTP_CREATED);
+        return new JsonResponse(['status' => 'Post created'], Response::HTTP_CREATED);
     }
 }

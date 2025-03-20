@@ -44,6 +44,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $apiToken = null;
 
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $confirmationCode = null;
+
+    public function getConfirmationCode(): ?int
+    {
+        return $this->confirmationCode;
+    }
+
+    public function setConfirmationCode(?int $confirmationCode): self
+    {
+        $this->confirmationCode = $confirmationCode;
+
+        return $this;
+    }
+
     public function __construct()
     {
         $this->posts = new ArrayCollection();

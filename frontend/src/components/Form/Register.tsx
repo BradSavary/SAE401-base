@@ -23,8 +23,9 @@ export function RegisterForm() {
                 },
                 body: JSON.stringify({ username, email, password }),
             });
+            localStorage.setItem('temporaryemail', email);
             alert('Registration successful! Please check your email for confirmation.');
-            navigate('/login');
+            navigate('/confirm');
         } catch (error) {
             console.error('Registration error:', error);
             alert('Registration failed. Please try again.');

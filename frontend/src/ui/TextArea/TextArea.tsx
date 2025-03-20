@@ -6,7 +6,7 @@ const textStyles = cva(
     {
         variants: {
             variant: {
-                primary: 'bg-custom text-custom w-full min-h-48 focus:border-none resize-none white-space-pre-wrap',
+                primary: 'bg-custom text-custom w-full min-h-96 focus:border-none resize-none white-space-pre-wrap',
             }
         },
         defaultVariants: {

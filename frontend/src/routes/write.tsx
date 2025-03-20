@@ -11,6 +11,7 @@ export function Write() {
     const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const username = user.username;
+    const user_id = user.user_id;
 
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
         const newContent = e.target.value;
@@ -27,7 +28,7 @@ export function Write() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ content }),
+                body: JSON.stringify({ content,  user_id}),
             });
             alert('Post published successfully!');
             navigate('/feed');

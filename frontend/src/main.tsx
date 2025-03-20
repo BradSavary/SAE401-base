@@ -9,6 +9,7 @@ import { fetchFeedPosts as FeedLoader } from './data/post';
 import { Welcome } from './routes/welcome';
 import { Register } from './routes/register';
 import { Login } from './routes/login';
+import { Confirm } from './routes/confirm';
 
 import { Write } from './routes/write';
 
@@ -27,7 +28,7 @@ const router = createBrowserRouter([
       {
         path: 'write',
         element: <Write />
-      }
+      },
     ],
   },
   {
@@ -41,6 +42,10 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+  },
+  {
+    path: '/confirm',
+    element: <Confirm />,
   }
 ]);
 

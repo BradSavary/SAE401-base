@@ -46,7 +46,7 @@ function Feed(): JSX.Element {
   }
 
   return (
-    <section className='bg-custom pb-15'>
+    <section className='bg-custom pb-15 '>
       {posts.map(post => (
         <Post
           key={post.id}

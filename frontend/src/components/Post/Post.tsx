@@ -13,7 +13,7 @@ function Post({ username, content, date }: PostProps): JSX.Element {
         <span className=" font-bold mr-2 text-custom">{username}</span>
         <span className=" text-custom-light-gray text-sm ">{date}</span>
       </div>
-      <div className=" text-gray-800 text-custom-light-gray">
+      <div className=" text-gray-800 text-custom-light-gray max-w-full">
         {content}
       </div>
     </div>
