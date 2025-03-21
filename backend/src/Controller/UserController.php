@@ -15,6 +15,7 @@ use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Mime\Message;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class UserController extends AbstractController
@@ -39,13 +40,21 @@ public function register(Request $request, UserPasswordHasherInterface $password
     $entityManager->persist($user);
     $entityManager->flush();
 
-    $email = (new Email())
+    $email = (new TemplatedEmail())
         ->from('no-reply@example.com')
         ->to($user->getEmail())
         ->subject('Please Confirm your Email')
-        ->html('<p>Your confirmation code is: '.$confirmationCode.'</p>');
+        ->htmlTemplate('email/confirmation_email.html.twig')
+        ->context([
+            'username' => $user->getUsername(),
+            'confirmation_code' => $confirmationCode,
+        ]);
 
-    $mailer->send($email);
+    try {
+        $mailer->send($email);
+    } catch (\Exception $e) {
+        return new Response('User registered but email could not be sent: ' . $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+    }
 
     return new Response('User registered', Response::HTTP_CREATED);
 }

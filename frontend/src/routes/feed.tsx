@@ -1,6 +1,7 @@
 import React, { useEffect, useState, JSX } from 'react';
 import { fetchFeedPosts } from '../data/post';
 import { Post } from '../components/Post/Post';
+import { PostSkeleton } from '../components/Post/PostSkeleton';
 import { timeAgo } from '../lib/utils';
 import { ThreadsIcon } from '../ui/LogoIcon/threads';
 
@@ -39,7 +40,14 @@ function Feed(): JSX.Element {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <section className='bg-custom pb-15 flex flex-col items-center w-full pt-6'>
+        <ThreadsIcon size="large" className='self-center' />
+        {[...Array(5)].map((_, index) => (
+          <PostSkeleton key={index} />
+        ))}
+      </section>
+    );
   }
 
   if (error) {

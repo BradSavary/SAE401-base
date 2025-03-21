@@ -6,10 +6,12 @@ import { MetaIcon } from "../../ui/LogoIcon/Meta";
 import Input from "../../ui/Input/Input";
 import { ArrowIcon } from "../../ui/Icon/arrow";
 import { apiRequest } from '../../lib/api-request';
+import LoadingIcon from '../../ui/Loading/LoadingIcon';
 
 export function ConfirmForm() {
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -19,7 +21,9 @@ export function ConfirmForm() {
         }
     }, []);
 
-    const handleConfirm = async () => {
+    const handleConfirm = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setIsLoading(true);
         console.log('Email:', email);
         console.log('Code:', code);
         try {
@@ -51,7 +55,7 @@ export function ConfirmForm() {
             <Link to="/welcome">
                 <ThreadsIcon size="xlarge" alt="Threads-logo" />
             </Link>
-            <div className="w-full flex flex-col justify-center space-y-4 h-full">
+            <form onSubmit={handleConfirm} className="w-full flex flex-col justify-center space-y-4 h-full">
                 <p className='text-custom pb-16 font-bold text-center text-2xl'>Please confirm your Email. Check your mailbox !</p>
                 <div className='w-full flex flex-col gap-4'>
                     <h2 className="text-custom font-bold">Confirm your email</h2>
@@ -63,9 +67,10 @@ export function ConfirmForm() {
                             onChange={(e) => setCode(e.target.value)}
                         />
                     </div>
-                    <Button variant="secondary" onClick={handleConfirm}>Confirm</Button>
+                    <Button variant="secondary" type="submit">Confirm</Button>
                 </div>
-            </div>
+            </form>
+            {isLoading && <LoadingIcon className="absolute top-10" size="xlarge" alt="Loading-logo" />}
             <MetaIcon className="absolute bottom-0" size="xlarge" alt="Meta-logo" />
         </div>
     );

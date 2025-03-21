@@ -7,14 +7,18 @@ import Input from "../../ui/Input/Input";
 import { ArrowIcon } from "../../ui/Icon/arrow";
 import { apiRequest } from '../../lib/api-request';
 import PasswordStrength from '../../ui/Password/PasswordStrength';
+import LoadingIcon from '../../ui/Loading/LoadingIcon'; // Assurez-vous d'avoir un composant LoadingIcon
 
 export function RegisterForm() {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false); // État pour le logo de chargement
     const navigate = useNavigate();
 
-    const handleRegister = async () => {
+    const handleRegister = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setIsLoading(true); // Afficher le logo de chargement
         try {
             await apiRequest('/register', {
                 method: 'POST',
@@ -29,6 +33,8 @@ export function RegisterForm() {
         } catch (error) {
             console.error('Registration error:', error);
             alert('Registration failed. Please try again.');
+        } finally {
+            setIsLoading(false); // Masquer le logo de chargement
         }
     };
 
@@ -40,7 +46,7 @@ export function RegisterForm() {
             <Link to="/welcome">
                 <ThreadsIcon size="xlarge" alt="Threads-logo" />
             </Link>
-            <div className="w-full flex flex-col justify-center space-y-4">
+            <form onSubmit={handleRegister} className="w-full flex flex-col justify-center space-y-4">
                 <h2 className="text-custom font-bold">Sign Up</h2>
                 <div>
                     <Input
@@ -68,8 +74,9 @@ export function RegisterForm() {
                     />
                 </div>
                 <PasswordStrength password={password} />
-                <Button variant="secondary" onClick={handleRegister}>Sign up</Button>
-            </div>
+                <Button variant="secondary" type="submit">Sign up</Button>
+            </form>
+            {isLoading && <LoadingIcon className="absolute top-10" size="xlarge" alt="Loading-logo" />}
             <MetaIcon className="absolute bottom-0" size="xlarge" alt="Meta-logo" />
         </div>
     );

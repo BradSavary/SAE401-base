@@ -6,13 +6,17 @@ import { MetaIcon } from "../../ui/LogoIcon/Meta";
 import Input from "../../ui/Input/Input";
 import { ArrowIcon } from "../../ui/Icon/arrow";
 import { apiRequest } from '../../lib/api-request';
+import LoadingIcon from '../../ui/Loading/LoadingIcon'; // Assurez-vous d'avoir un composant LoadingIcon
 
 export function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false); // État pour le logo de chargement
     const navigate = useNavigate();
 
-    const handleLogin = async () => {
+    const handleLogin = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setIsLoading(true); // Afficher le logo de chargement
         try {
             const response = await apiRequest<{ api_token: string; email: string; username: string; user_id: string }>('/login', {
                 method: 'POST',
@@ -30,10 +34,12 @@ export function LoginForm() {
                 user_id: response.user_id
             }));
             alert('Login successful!');
-            navigate('/feed'); // Redirigez vers la page de tableau de bord ou une autre page après la connexion
+            navigate('/feed'); // Redirect to the dashboard or another page after login
         } catch (error) {
             console.error('Login error:', error);
             alert('Login failed. Please try again.');
+        } finally {
+            setIsLoading(false); // Masquer le logo de chargement
         }
     };
 
@@ -45,7 +51,7 @@ export function LoginForm() {
             <Link to="/welcome">
                 <ThreadsIcon size="xlarge" alt="Threads-logo" />
             </Link>
-            <div className="w-full flex flex-col justify-center space-y-4">
+            <form onSubmit={handleLogin} className="w-full flex flex-col justify-center space-y-4">
                 <h2 className="text-custom font-bold">Log in</h2>
                 <div>
                     <Input
@@ -64,9 +70,10 @@ export function LoginForm() {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
-                <Button variant="secondary" onClick={handleLogin}>Log in</Button>
+                <Button variant="secondary" type="submit">Log in</Button>
                 <p className="text-custom-gray underline self-center">Forgotten Password ?</p>
-            </div>
+            </form>
+            {isLoading && <LoadingIcon className="absolute top-10" size="xlarge" alt="Loading-logo" />}
             <MetaIcon className="absolute bottom-0" size="xlarge" alt="Meta-logo" />
         </div>
     );
