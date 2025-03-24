@@ -13,11 +13,7 @@ export function NavBar() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate loading time
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 2000);
-        return () => clearTimeout(timer);
+        setLoading(false);
     }, []);
 
     return (
@@ -39,7 +35,7 @@ export function NavBar() {
                     </Link>
                 </li>
                 <li>
-                    <Link to="/account" className="">
+                    <Link to="/profile" className="">
                         {loading ? <SkeletonIcon /> : <AccountIcon className="h-8 w-8" alt="Account" />}
                     </Link>
                 </li>

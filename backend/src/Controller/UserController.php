@@ -168,6 +168,7 @@ public function login(Request $request, UserPasswordHasherInterface $passwordHas
 }
 
     #[Route('/user/update/{id}', name: 'user_update', methods: ['PUT'])]
+    #[IsGranted("ROLE_USER")]
 public function updateUser(int $id, Request $request, EntityManagerInterface $entityManager): Response
 {
     $data = json_decode($request->getContent(), true);
@@ -247,5 +248,26 @@ public function getUserById(int $id, EntityManagerInterface $entityManager): Res
         'is_verified' => $user->getIsVerified(),
     ], Response::HTTP_OK);
 
+}
+
+#[Route('/user/{id}', name: 'get_user', methods: ['GET'])]
+public function fetchUserById(int $id, EntityManagerInterface $entityManager): Response
+{
+    $user = $entityManager->getRepository(User::class)->find($id);
+
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
+    }
+
+    return new JsonResponse([
+        'user_id' => $user->getId(),
+        'username' => $user->getUsername(),
+        'email' => $user->getEmail(),
+        'avatar' => $user->getAvatar(),
+        'place' => $user->getPlace(),
+        'banner' => $user->getBanner(),
+        'link' => $user->getLink(),
+        'bio' => $user->getBio(),
+    ], Response::HTTP_OK);
 }
 };

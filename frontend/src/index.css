@@ -9,7 +9,8 @@
     --clr-light-gray: #cecece;
 
     --custom-bg-color: var(--clr-dark);
-    --custom-text-color: var(--clr-light);   
+    --custom-text-color: var(--clr-light);
+    --custom-ratio: 5/2;
   }
 }
 
@@ -57,5 +58,28 @@
 
   .border-custome-light-gray{
     border-color: var(--clr-light-gray);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--clr-light) var(--clr-dark);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: var(--clr-dark);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--clr-light);
+    border-radius: 10px;
+    border: 2px solid var(--clr-dark);
+  }
+
+  .aspect-custom-banner{
+    aspect-ratio: var(--custom-ratio);
   }
 }

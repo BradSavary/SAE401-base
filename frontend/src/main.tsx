@@ -3,13 +3,14 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import Root from './routes/root';
-import { Feed } from './routes/feed';
 import { Welcome } from './routes/welcome';
 import { Register } from './routes/register';
 import { Login } from './routes/login';
 import { Confirm } from './routes/confirm';
 
+import { Feed } from './routes/feed';
 import { Write } from './routes/write';
+import Profile from './routes/profile';
 
 import { Admin } from './routes/admin';
 import { EditUser } from './routes/editUser';
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
         path: 'write',
         element: <Write />
       },
+      {
+        path: 'profile',
+        element: <Profile/>
+      }
     ],
   },
   {

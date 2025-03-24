@@ -4,6 +4,7 @@ import { Post } from '../components/Post/Post';
 import { PostSkeleton } from '../components/Post/PostSkeleton';
 import { timeAgo } from '../lib/utils';
 import { ThreadsIcon } from '../ui/LogoIcon/threads';
+import { useNavigate } from 'react-router-dom';
 
 interface PostData {
   id: number;
@@ -29,6 +30,7 @@ function Feed(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
+  const navigate = useNavigate();
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostRef = useRef<HTMLDivElement | null>(null);
 
@@ -36,7 +38,7 @@ function Feed(): JSX.Element {
     async function loadPosts() {
       const token = localStorage.getItem('accessToken');
       if (!token) {
-        setError('No valid token found. Please log in.');
+        navigate('/login');
         setLoading(false);
         return;
       }
@@ -86,19 +88,20 @@ function Feed(): JSX.Element {
   }
 
   return (
-    <section className='bg-custom pb-15 flex flex-col w-full pt-6'>
-      <ThreadsIcon size="large" className='self-center' />
-      {posts.map((post, index) => (
-        <div ref={index === posts.length - 1 ? lastPostRef : null}>
-          <Post
-            key={post.id}
-            username={post.username}
-            content={post.content}
-            date={timeAgo(new Date(post.created_at))}
-          />
-        </div>
-      ))}
-      {loading && <PostSkeleton />}
+    <section className='bg-custom pb-15 flex flex-col w-full h-screen'>
+        <ThreadsIcon size="large" className='self-center my-6' />
+      <div className='overflow-y-auto flex-1 scrollbar-thin'>
+        {posts.map((post, index) => (
+          <div ref={index === posts.length - 1 ? lastPostRef : null} key={`${post.id}-${index}`}>
+        <Post
+          username={post.username}
+          content={post.content}
+          date={timeAgo(new Date(post.created_at))}
+        />
+          </div>
+        ))}
+        {loading && <PostSkeleton />}
+      </div>
     </section>
   );
 }

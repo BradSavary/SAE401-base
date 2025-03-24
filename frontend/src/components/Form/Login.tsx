@@ -50,12 +50,10 @@ export function LoginForm() {
 
             const data = await response.json();
             localStorage.setItem('accessToken', data.api_token);
-            localStorage.setItem('user', JSON.stringify({
-                api_token: data.api_token,
-                email: data.email,
-                username: data.username,
-                user_id: data.user_id,
-            }));
+            localStorage.setItem('api_token', data.api_token);
+            localStorage.setItem('email', data.email);
+            localStorage.setItem('username', data.username);
+            localStorage.setItem('user_id', data.user_id);
             alert('Login successful!');
             navigate('/feed'); // Redirect to the dashboard or another page after login
         } catch (error) {
