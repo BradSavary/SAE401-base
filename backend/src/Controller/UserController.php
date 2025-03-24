@@ -139,22 +139,33 @@ public function resendConfirmation(Request $request, EntityManagerInterface $ent
     return new JsonResponse(['status' => 'Confirmation email resent'], Response::HTTP_OK);
 }
 
-    #[Route('/login', name: 'login', methods: ['POST'])]
-    public function login(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager): Response
-    {
-        $data = json_decode($request->getContent(), true);
-        $user = $entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+#[Route('/login', name: 'login', methods: ['POST'])]
+public function login(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager): Response
+{
+    $data = json_decode($request->getContent(), true);
+    $user = $entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
 
-        if (!$user || !$passwordHasher->isPasswordValid($user, $data['password'])) {
-            return new Response('Invalid credentials', Response::HTTP_UNAUTHORIZED);
-        }
-
-        if (!$user->getIsVerified()) {
-            return new Response('Email not verified', Response::HTTP_FORBIDDEN);
-        }
-
-        return new JsonResponse([ 'message' => 'User is logged in', 'api_token' => $user->getApiToken(), "username"=> $user->getUsername(), "email"=> $user->getEmail(), "user_id"=> $user->getId()], Response::HTTP_OK);
+    if (!$user || !$passwordHasher->isPasswordValid($user, $data['password'])) {
+        return new Response('Invalid credentials', Response::HTTP_UNAUTHORIZED);
     }
+
+    if (!$user->getIsVerified()) {
+        return new Response('Email not verified', Response::HTTP_FORBIDDEN);
+    }
+
+    // Generate a new token
+    $token = bin2hex(random_bytes(32));
+    $user->setApiToken($token);
+    $entityManager->flush();
+
+    return new JsonResponse([
+        'message' => 'User is logged in',
+        'api_token' => $token,
+        'username' => $user->getUsername(),
+        'email' => $user->getEmail(),
+        'user_id' => $user->getId()
+    ], Response::HTTP_OK);
+}
 
     #[Route('/user/update/{id}', name: 'user_update', methods: ['PUT'])]
 public function updateUser(int $id, Request $request, EntityManagerInterface $entityManager): Response

@@ -61,4 +61,8 @@ export function timeAgo(date: Date): string {
       return `${interval} min`;
   }
   return `${Math.floor(seconds)} s`;
-}
+};
+
+export function clearLocalStorage(){
+  localStorage.clear();
+};

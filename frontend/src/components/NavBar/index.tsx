@@ -1,13 +1,15 @@
 import { ExploreIcon } from '../../ui/NavBarIcon/explore';
 import { FeedIcon } from '../../ui/NavBarIcon/feedS';
 import { WriteIcon } from '../../ui/NavBarIcon/write';
-import { LikeIcon } from '../../ui/NavBarIcon/like';
+import { LogoutIcon } from '../../ui/NavBarIcon/logout';
 import { AccountIcon } from '../../ui/NavBarIcon/account';
 import { Link } from 'react-router-dom';
 import { SkeletonIcon } from '../../ui/NavBarIcon/squeleton';
 import { useState, useEffect } from 'react';
+import { clearLocalStorage } from '../../lib/utils';
 
 export function NavBar() {
+
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -37,13 +39,13 @@ export function NavBar() {
                     </Link>
                 </li>
                 <li>
-                    <Link to="/like" className="">
-                        {loading ? <SkeletonIcon /> : <LikeIcon className="h-8 w-8" alt="Like" />}
+                    <Link to="/account" className="">
+                        {loading ? <SkeletonIcon /> : <AccountIcon className="h-8 w-8" alt="Account" />}
                     </Link>
                 </li>
                 <li>
-                    <Link to="/account" className="">
-                        {loading ? <SkeletonIcon /> : <AccountIcon className="h-8 w-8" alt="Account" />}
+                    <Link to="/login" className="">
+                        {loading ? <SkeletonIcon /> : <div onClick={clearLocalStorage}><LogoutIcon className="h-8 w-8" alt="Like" /></div>}
                     </Link>
                 </li>
             </ul>
