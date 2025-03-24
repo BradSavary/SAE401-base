@@ -4,8 +4,6 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import Root from './routes/root';
 import { Feed } from './routes/feed';
-import { fetchFeedPosts as FeedLoader } from './data/post';
-
 import { Welcome } from './routes/welcome';
 import { Register } from './routes/register';
 import { Login } from './routes/login';
@@ -26,7 +24,6 @@ const router = createBrowserRouter([
       {
         path: 'feed',
         element: <Feed />,
-        loader: FeedLoader
       },
       {
         path: 'write',
