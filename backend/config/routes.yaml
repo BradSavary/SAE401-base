@@ -17,3 +17,8 @@ user_login:
 
 api_login_check:
     path: /api/login_check
+    
+resend_confirmation:
+    path: /resend-confirmation
+    controller: App\Controller\UserController::resendConfirmation
+    methods: ['POST']

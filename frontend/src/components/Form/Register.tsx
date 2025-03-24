@@ -14,25 +14,43 @@ export function RegisterForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false); // État pour le logo de chargement
+    const [error, setError] = useState(''); // État pour les messages d'erreur
     const navigate = useNavigate();
 
     const handleRegister = async (event: React.FormEvent) => {
         event.preventDefault();
         setIsLoading(true); // Afficher le logo de chargement
+        setError(''); // Réinitialiser les erreurs
         try {
-            await apiRequest('/register', {
+            const response = await apiRequest('/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ username, email, password }),
-            });
+            }) as Response;
+
+            if (!response.ok) {
+                const errorData = await response.json();       
+                if (errorData.code === 'INVALID_EMAIL') {
+                    setError('Invalid email format');
+                } else if (errorData.code === 'USERNAME_TAKEN') {
+                    setError('Username already taken');
+                } else if (errorData.code === 'EMAIL_TAKEN') {
+                    setError('Email already used');
+                } else {
+                    setError('Registration failed. Please try again.');
+                }
+                setIsLoading(false); // Masquer le logo de chargement
+                return;
+            }
+
             localStorage.setItem('temporaryemail', email);
             alert('Registration successful! Please check your email for confirmation.');
             navigate('/confirm');
         } catch (error) {
             console.error('Registration error:', error);
-            alert('Registration failed. Please try again.');
+            setError('Registration failed. Please try again.');
         } finally {
             setIsLoading(false); // Masquer le logo de chargement
         }
@@ -48,6 +66,7 @@ export function RegisterForm() {
             </Link>
             <form onSubmit={handleRegister} className="w-full flex flex-col justify-center space-y-4">
                 <h2 className="text-custom font-bold">Sign Up</h2>
+                {error && <div className="text-red-500">{error}</div>}
                 <div>
                     <Input
                         variant="primary"

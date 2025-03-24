@@ -34,16 +34,42 @@ export function ConfirmForm() {
                 },
                 body: JSON.stringify({ email, code: parseInt(code, 10) }),
             });
-            const error = response.status !== 200;
+            const noError = response.status === 200;
 
-            if (error) {
+            if (noError) {
                 localStorage.removeItem('temporaryemail');
                 navigate('/login');
             } else {
-                console.error('Invalid confirmation code', response.ok);
+                console.error('Invalid confirmation code');
             }
         } catch (error) {
             console.error('Error confirming email:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleResendEmail = async () => {
+        setIsLoading(true);
+        try {
+            const response: Response = await apiRequest('/resend-confirmation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+            const noError = response.status !== 200;
+
+            if (noError) {
+                console.log('Confirmation email resent');
+            } else {
+                console.error('Failed to resend confirmation email');
+            }
+        } catch (error) {
+            console.error('Error resending confirmation email:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -68,6 +94,7 @@ export function ConfirmForm() {
                         />
                     </div>
                     <Button variant="secondary" type="submit">Confirm</Button>
+                    <p className='text-custom-gray self-center underline cursor-pointer' onClick={handleResendEmail}>Send another Email</p>
                 </div>
             </form>
             {isLoading && <LoadingIcon className="absolute top-10" size="xlarge" alt="Loading-logo" />}

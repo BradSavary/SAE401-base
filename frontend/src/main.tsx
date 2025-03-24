@@ -13,6 +13,9 @@ import { Confirm } from './routes/confirm';
 
 import { Write } from './routes/write';
 
+import { Admin } from './routes/admin';
+import { EditUser } from './routes/editUser';
+
 import './index.css';
 
 const router = createBrowserRouter([
@@ -46,6 +49,14 @@ const router = createBrowserRouter([
   {
     path: '/confirm',
     element: <Confirm />,
+  },
+  {
+    path: '/admin',
+    element: <Admin />
+  },
+  {
+    path: '/admin/edit/:userId',
+    element: <EditUser />
   }
 ]);
 

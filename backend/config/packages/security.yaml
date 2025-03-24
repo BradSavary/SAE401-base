@@ -40,8 +40,11 @@ security:
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
         - { path: ^/confirm, roles: PUBLIC_ACCESS }
+        - { path: ^/resend-confirmation, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: PUBLIC_ACCESS }
+        - { path: ^/api/check-admin, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
+        - { path : ^/user/update/, roles: ROLE_ADMIN }
 
 when@test:
     security:

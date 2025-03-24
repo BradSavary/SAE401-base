@@ -12,32 +12,55 @@ export function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false); // État pour le logo de chargement
+    const [error, setError] = useState(''); // État pour les messages d'erreur
     const navigate = useNavigate();
 
     const handleLogin = async (event: React.FormEvent) => {
         event.preventDefault();
         setIsLoading(true); // Afficher le logo de chargement
+        setError(''); // Réinitialiser les erreurs
         try {
-            const response = await apiRequest<{ api_token: string; email: string; username: string; user_id: string }>('/login', {
+            const response = await apiRequest('/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ email, password }),
-            });
-            console.log('Login response:', response);
-            localStorage.setItem('accessToken', response.api_token);
+            }) as Response;
+
+            if (!response.ok) {
+                let errorData;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    errorData = await response.json();
+                } else {
+                    errorData = { message: await response.text() };
+                }
+                console.log('Login error:', errorData);
+                if (response.status === 401) {
+                    setError('Email or password incorrect');
+                } else if (response.status === 403) {
+                    setError('Email not verified. Please check your email for the confirmation link or ');
+                } else {
+                    setError('Login failed. Please try again.');
+                }
+                setIsLoading(false); // Masquer le logo de chargement
+                return;
+            }
+
+            const data = await response.json();
+            localStorage.setItem('accessToken', data.api_token);
             localStorage.setItem('user', JSON.stringify({
-                api_token: response.api_token,
-                email: response.email,
-                username: response.username,
-                user_id: response.user_id
+                api_token: data.api_token,
+                email: data.email,
+                username: data.username,
+                user_id: data.user_id,
             }));
             alert('Login successful!');
             navigate('/feed'); // Redirect to the dashboard or another page after login
         } catch (error) {
             console.error('Login error:', error);
-            alert('Login failed. Please try again.');
+            setError('Login failed. Please try again.');
         } finally {
             setIsLoading(false); // Masquer le logo de chargement
         }
@@ -53,6 +76,16 @@ export function LoginForm() {
             </Link>
             <form onSubmit={handleLogin} className="w-full flex flex-col justify-center space-y-4">
                 <h2 className="text-custom font-bold">Log in</h2>
+                {error && (
+                    <div className="text-red-500">
+                        {error}
+                        {error.includes('Email not verified') && (
+                            <Link to="/confirm" className="text-blue-500 underline">
+                                click here to confirm your email
+                            </Link>
+                        )}
+                    </div>
+                )}
                 <div>
                     <Input
                         variant="primary"

@@ -2,7 +2,8 @@ import { apiRequest } from '../lib/api-request';
 
 async function fetchFeedPosts() {
     try {
-        const data = await apiRequest<{ posts: any[] }>('/posts');
+        const response = await apiRequest<{ posts: any[] }>('/posts');
+        const data = await response.json();
         return data.posts;
     } catch (error) {
         console.error('Error fetching posts:', error);
