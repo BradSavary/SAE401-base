@@ -1,10 +1,10 @@
-interface FeedIconProps {
+interface FeedSIconProps {
     className?: string;
     alt?: string;
 }
 
-export function FeedIcon({ className, alt }: FeedIconProps) {
+export function FeedSIcon({ className, alt }: FeedSIconProps) {
     return (
-        <img src="../../../public/feed.svg" alt={alt} className={className} />
+        <img src="../../../public/feedS.svg" alt={alt} className={className} />
     );
 };

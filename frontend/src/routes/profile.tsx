@@ -5,6 +5,7 @@ import Banner from '../ui/Profile/Banner';
 import Bio from '../ui/Profile/Bio';
 import Place from '../ui/Profile/Place';
 import Site from '../ui/Profile/Link';
+import Skeleton from '../components/Backoffice/Profile/Skeleton';
 
 interface User {
     user_id: number;
@@ -35,8 +36,8 @@ export default function Profile() {
         fetchUserProfile();
     }, [user_id]);
 
-    if (!user) {
-        return <div>Loading...</div>;
+    if (!user ) {
+        return <Skeleton count={1} />;
     }
 
     return (

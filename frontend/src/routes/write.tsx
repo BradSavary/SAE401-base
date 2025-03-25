@@ -9,9 +9,8 @@ export function Write() {
     const [content, setContent] = useState('');
     const [charCount, setCharCount] = useState(0);
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const username = user.username;
-    const user_id = user.user_id;
+    const username = localStorage.getItem('username');
+    const user_id = localStorage.getItem('user_id');
 
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
         const newContent = e.target.value;
@@ -23,17 +22,22 @@ export function Write() {
 
     const handlePublish = async () => {
         try {
-            await apiRequest('/posts', {
+            const userId = user_id ? parseInt(user_id, 10) : null; // Parse user_id as an integer if it's not null
+            console.log('Publishing post with content:', content, 'and user_id:', userId); // Log the data being sent
+            const response = await apiRequest('/posts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ content,  user_id}),
+                body: JSON.stringify({ content, user_id: userId }),
             });
-            alert('Post published successfully!');
-            navigate('/feed');
+            if (!response.ok) {
+                alert('Failed to publish post. Please try again.');
+            } else {
+                alert('Post published successfully!');
+                navigate('/feed');
+            }
         } catch (error) {
-            console.error('Publishing error:', error);
             alert('Failed to publish post. Please try again.');
         }
     };

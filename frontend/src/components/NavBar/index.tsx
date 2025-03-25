@@ -1,16 +1,18 @@
 import { ExploreIcon } from '../../ui/NavBarIcon/explore';
-import { FeedIcon } from '../../ui/NavBarIcon/feedS';
+import { FeedSIcon } from '../../ui/NavBarIcon/feedS';
+import { FeedIcon } from '../../ui/NavBarIcon/feed';
 import { WriteIcon } from '../../ui/NavBarIcon/write';
 import { LogoutIcon } from '../../ui/NavBarIcon/logout';
 import { AccountIcon } from '../../ui/NavBarIcon/account';
-import { Link } from 'react-router-dom';
+import { AccountSIcon } from '../../ui/NavBarIcon/accountS';
+import { Link, useLocation } from 'react-router-dom';
 import { SkeletonIcon } from '../../ui/NavBarIcon/squeleton';
 import { useState, useEffect } from 'react';
 import { clearLocalStorage } from '../../lib/utils';
 
 export function NavBar() {
-
     const [loading, setLoading] = useState(true);
+    const location = useLocation();
 
     useEffect(() => {
         setLoading(false);
@@ -21,7 +23,7 @@ export function NavBar() {
             <ul className="flex justify-between ">
                 <li>
                     <Link to="/feed" className="">
-                        {loading ? <SkeletonIcon /> : <FeedIcon className="h-8 w-8" alt="Feed" />}
+                        {loading ? <SkeletonIcon /> : (location.pathname === '/feed' ? <FeedSIcon className="h-8 w-8" alt="Feed" /> : <FeedIcon className="h-8 w-8" alt="Feed" />)}
                     </Link>
                 </li>
                 <li>
@@ -36,7 +38,7 @@ export function NavBar() {
                 </li>
                 <li>
                     <Link to="/profile" className="">
-                        {loading ? <SkeletonIcon /> : <AccountIcon className="h-8 w-8" alt="Account" />}
+                        {loading ? <SkeletonIcon /> : (location.pathname === '/profile' ? <AccountSIcon className="h-8 w-8" alt="Account" /> : <AccountIcon className="h-8 w-8" alt="Account" />)}
                     </Link>
                 </li>
                 <li>

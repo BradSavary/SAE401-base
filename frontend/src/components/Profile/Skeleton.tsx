@@ -1,21 +1,27 @@
+import React from 'react';
 
-// Loading skeleton
 export function ProfileSkeleton() {
     return (
-        <div className="animate-pulse p-4">
-            <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
-                <div className="flex-1 space-y-4 py-1">
-                    <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+        <div className="flex flex-col text-custom animate-pulse">
+            <div className="w-full max-h-35  bg-gray-300"></div>
+            <div className='flex flex-row-reverse p-4 items-start'>
+                <div className="w-30 aspect-square rounded-full overflow-hidden bg-gray-300"></div>
+                <div className='flex flex-col w-full max-w-2xl gap-3'>
+                    <div>
+                        <div className='h-8 bg-gray-300 rounded w-3/4 mb-2'></div>
+                        <div className='h-6 bg-gray-300 rounded w-1/2'></div>
+                    </div>
+                    <div className='flex flex-col gap-2'>
+                        <div className='h-4 bg-gray-300 rounded w-full'></div>
+                        <div className='h-4 bg-gray-300 rounded w-5/6'></div>
+                        <div className='h-4 bg-gray-300 rounded w-4/6'></div>
+                    </div>
+                    <div className='flex gap-2'>
+                        <div className='h-4 bg-gray-300 rounded w-1/4'></div>
+                        <div className='h-4 bg-gray-300 rounded w-1/4'></div>
+                    </div>
                 </div>
-            </div>
-            <div className="mt-6 space-y-4">
-                <div className="h-4 bg-gray-300 rounded"></div>
-                <div className="h-4 bg-gray-300 rounded w-5/6"></div>
-                <div className="h-4 bg-gray-300 rounded w-2/3"></div>
             </div>
         </div>
     );
-  }
-  
+}

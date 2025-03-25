@@ -57,15 +57,15 @@ final class PostController extends AbstractController
         PostService $postService
     ): Response {
         $payload = $serializer->deserialize($request->getContent(), CreatePostPayload::class, 'json');
-
+    
         $errors = $validator->validate($payload);
         if (count($errors) > 0) {
             return $this->json($errors, Response::HTTP_BAD_REQUEST);
         }
-
+    
         // Appel au service PostService pour créer le post
         $postService->create($payload);
-
+    
         return new JsonResponse(['status' => 'Post created'], Response::HTTP_CREATED);
     }
 }
