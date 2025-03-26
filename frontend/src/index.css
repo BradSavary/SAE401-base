@@ -11,6 +11,7 @@
     --custom-bg-color: var(--clr-dark);
     --custom-text-color: var(--clr-light);
     --custom-ratio: 5/2;
+
   }
 }
 
@@ -81,5 +82,9 @@
 
   .aspect-custom-banner{
     aspect-ratio: var(--custom-ratio);
+  }
+
+  .w-half{
+    width: 50%;
   }
 }

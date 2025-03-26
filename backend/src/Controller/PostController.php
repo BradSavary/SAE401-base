@@ -16,6 +16,7 @@ use App\Repository\PostRepository;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use App\Entity\User;
 
 final class PostController extends AbstractController
 {
@@ -76,4 +77,39 @@ public function index(Request $request, PostRepository $postRepository): Respons
     
         return new JsonResponse(['status' => 'Post created'], Response::HTTP_CREATED);
     }
+
+    #[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]
+public function getUserPosts(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
+{
+    // Vérifiez si l'utilisateur existe
+    $user = $entityManager->getRepository(User::class)->find($id);
+
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    // Récupérez les posts de l'utilisateur
+    $posts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
+
+    // Récupérer les paramètres pour construire les URLs des avatars
+    $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+    $uploadDir = $this->getParameter('upload_directory');
+
+    $postData = [];
+    foreach ($posts as $post) {
+        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+
+        $postData[] = [
+            'id' => $post->getId(),
+            'content' => $post->getContent(),
+            'created_at' => $post->getCreatedAt(),
+            'username' => $user->getUsername(),
+            'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+        ];
+    }
+
+    return new JsonResponse($postData, JsonResponse::HTTP_OK);
+}
+
+
 }
