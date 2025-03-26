@@ -6,6 +6,8 @@ import Bio from '../ui/Profile/Bio';
 import Place from '../ui/Profile/Place';
 import Site from '../ui/Profile/Link';
 import Skeleton from '../components/Backoffice/Profile/Skeleton';
+import Button from '../ui/Button/Button';
+import { Link } from 'react-router-dom';
 
 interface User {
     user_id: number;
@@ -44,7 +46,12 @@ export default function Profile() {
         <div className="flex flex-col  text-custom">
             <Banner banner={user.banner || defaultBanner} className="w-full overflow-hidden max-h-35 aspect-custom-banner" />
             <div className='flex flex-row-reverse p-4 items-start'>
-            <Avatar avatar={user.avatar || defaultAvatar} className="w-30 aspect-square rounded-full overflow-hidden" />
+                <div className='h-full flex flex-col items-end justify-between gap-5'>
+            <Avatar avatar={user.avatar || defaultAvatar} className="w-20 aspect-square rounded-full overflow-hidden" />
+            <Link to="/profile/edit">
+            <Button variant="quaternary">Edit</Button>
+            </Link>
+            </div>
             <div className='flex flex-col w-full max-w-2xl gap-3'>
             <div>
             <h1 className='font-bold text-4xl'>{user.username}</h1>
@@ -62,5 +69,6 @@ export default function Profile() {
             </div>
             </div>
         </div>
+        
     );
 }

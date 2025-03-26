@@ -21,33 +21,41 @@ final class PostController extends AbstractController
 {
 
     #[Route('/posts', name: 'posts.index', methods: ['GET'])]
-    public function index(Request $request, PostRepository $postRepository): Response
-    {
-        $page = (int) $request->query->get('page', 1);
-        $offset = ($page - 1) * 15;
+public function index(Request $request, PostRepository $postRepository): Response
+{
+    $page = (int) $request->query->get('page', 1);
+    $offset = ($page - 1) * 15;
 
-        $paginator = $postRepository->paginateAllOrderedByLatest($offset, 15);
-        $totalPostsCount = $paginator->count();
+    $paginator = $postRepository->paginateAllOrderedByLatest($offset, 15);
+    $totalPostsCount = $paginator->count();
 
-        $previousPage = $page > 1 ? $page - 1 : null;
-        $nextPage = ($offset + 15) < $totalPostsCount ? $page + 1 : null;
+    $previousPage = $page > 1 ? $page - 1 : null;
+    $nextPage = ($offset + 15) < $totalPostsCount ? $page + 1 : null;
 
-        $posts = [];
-        foreach ($paginator as $post) {
-            $posts[] = [
-                'id' => $post->getId(),
-                'content' => $post->getContent(),
-                'created_at' => $post->getCreatedAt(),
-                'username' => $post->getUser()->getUsername(),
-            ];
-        }
+    // Récupérer les paramètres pour construire les URLs des avatars
+    $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+    $uploadDir = $this->getParameter('upload_directory');
 
-        return $this->json([
-            'posts' => $posts,
-            'previous_page' => $previousPage,
-            'next_page' => $nextPage
-        ]);
+    $posts = [];
+    foreach ($paginator as $post) {
+        $user = $post->getUser();
+        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+
+        $posts[] = [
+            'id' => $post->getId(),
+            'content' => $post->getContent(),
+            'created_at' => $post->getCreatedAt(),
+            'username' => $user->getUsername(),
+            'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+        ];
     }
+
+    return $this->json([
+        'posts' => $posts,
+        'previous_page' => $previousPage,
+        'next_page' => $nextPage
+    ]);
+}
 
     #[Route('/posts', name: 'posts.create', methods: ['POST'])]
     public function create(

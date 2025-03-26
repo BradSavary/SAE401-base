@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../../ui/Button/Button';
 
 interface User {
-    username: string;
     user_id: number;
+    username: string;
     email: string;
-    is_verified: boolean;
+    avatar: string | null; // Ajout de l'avatar
 }
 
 interface ProfileProps {
@@ -24,15 +24,18 @@ const Profile = ({ users }: ProfileProps) => {
         <div className="bg-custom flex flex-col items-center w-full pt-6">
             {users.map(user => (
                 <div key={user.user_id} className='flex flex-row items-center w-full m-1 py-2 border-b border-custom-gray px-4 justify-between'>
-                    <img src="../../../public/default-avata.webp" className='rounded-full max-w-8 max-h-8' alt="Post image" />
+                    <img
+                        src={user.avatar || '../../../public/default-avata.webp'} // Utilisation de l'URL de l'avatar
+                        className='rounded-full max-w-8 max-h-8 aspect-square'
+                        alt={`${user.username}'s avatar`}
+                    />
                     <div className="px-4 w-full">
                         <div className="flex flex-col justify-between mb-2">
                             <span className="font-bold mr-2 text-custom">{user.username}</span>
-                            <span className="text-custom-light-gray text-xs">{user.email}</span>
-                            {user.is_verified === false && <span className="text-red-500 text-xs">Unverified user</span>}
+                            <span className="text-sm text-custom-light-gray">{user.email}</span>
                         </div>
                     </div>
-                    <Button variant={'quaternary'} onClick={() => handleEditClick(user.user_id)}>Edit</Button>
+                    <Button variant="quaternary" onClick={() => handleEditClick(user.user_id)}>Edit</Button>
                 </div>
             ))}
         </div>

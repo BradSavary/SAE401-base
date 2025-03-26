@@ -11,6 +11,7 @@ interface PostData {
   username: string;
   content: string;
   created_at: string;
+  avatar: string; // Added avatar property
 }
 
 async function fetchFeedPosts(page: number) {
@@ -42,10 +43,17 @@ function Feed(): JSX.Element {
         setLoading(false);
         return;
       }
-
+  
       try {
         const data = await fetchFeedPosts(page);
-        setPosts(prevPosts => [...prevPosts, ...data.posts]);
+  
+        // Évitez les doublons en vérifiant les IDs des posts
+        setPosts(prevPosts => {
+          const existingPostIds = new Set(prevPosts.map(post => post.id));
+          const newPosts = (data.posts as PostData[]).filter((post: PostData) => !existingPostIds.has(post.id));
+          return [...prevPosts, ...newPosts];
+        });
+  
         setHasMore(data.next_page !== null);
       } catch (error) {
         setError('Failed to load posts');
@@ -53,7 +61,7 @@ function Feed(): JSX.Element {
         setLoading(false);
       }
     }
-
+  
     loadPosts();
   }, [page]);
 
@@ -97,6 +105,7 @@ function Feed(): JSX.Element {
           username={post.username}
           content={post.content}
           date={timeAgo(new Date(post.created_at))}
+          avatar={post.avatar}
         />
           </div>
         ))}

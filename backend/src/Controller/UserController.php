@@ -19,6 +19,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
+use App\Repository\UserRepository;
 
 class UserController extends AbstractController
 {
@@ -215,21 +218,27 @@ public function checkAdmin(Request $request, EntityManagerInterface $entityManag
 }
     
 #[Route('/api/users', name: 'api_users', methods: ['GET'])]
-public function getUsers(EntityManagerInterface $entityManager): Response
+public function getUsers(EntityManagerInterface $entityManager): JsonResponse
 {
     $users = $entityManager->getRepository(User::class)->findAll();
-    $userData = [];
 
+    // Récupérer les paramètres pour construire les URLs des avatars
+    $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+    $uploadDir = $this->getParameter('upload_directory');
+
+    $userData = [];
     foreach ($users as $user) {
+        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+
         $userData[] = [
-            'username' => $user->getUsername(),
             'user_id' => $user->getId(),
+            'username' => $user->getUsername(),
             'email' => $user->getEmail(),
-            'is_verified' => $user->getIsVerified(),
+            'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
         ];
     }
 
-    return new JsonResponse($userData, Response::HTTP_OK);
+    return new JsonResponse($userData, JsonResponse::HTTP_OK);
 }
 
 #[Route('/api/users/{id}', name: 'api_user', methods: ['GET'])]
@@ -251,23 +260,120 @@ public function getUserById(int $id, EntityManagerInterface $entityManager): Res
 }
 
 #[Route('/user/{id}', name: 'get_user', methods: ['GET'])]
-public function fetchUserById(int $id, EntityManagerInterface $entityManager): Response
+#[IsGranted('ROLE_USER')]
+public function fetchUserById(int $id, EntityManagerInterface $entityManager): JsonResponse
 {
+    $user = $entityManager->getRepository(User::class)->find($id);
+
+    if (!$user) {
+        return new JsonResponse(['code' => 'C-4121', 'message' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    // Récupérer le chemin public pour les fichiers
+    $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+    $uploadDir = $this->getParameter('upload_directory');
+
+    $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+    $bannerUrl = $user->getBanner() ? $baseUrl . '/' . $uploadDir . '/' . $user->getBanner() : null;
+
+    $data = [
+        'id' => $user->getId(),
+        'email' => $user->getEmail(),
+        'username' => $user->getUsername(),
+        'bio' => $user->getBio(),
+        'avatar' => $avatarUrl,
+        'place' => $user->getPlace(),
+        'banner' => $bannerUrl,
+        'link' => $user->getLink(),
+    ];
+
+    return new JsonResponse($data, JsonResponse::HTTP_OK);
+}
+
+#[Route('/user/updateprofile/{id}', name: 'user.updateprofile', methods: ['POST'])]
+public function updateProfile(
+    int $id,
+    Request $request,
+    EntityManagerInterface $entityManager,
+    ValidatorInterface $validator
+): Response {
     $user = $entityManager->getRepository(User::class)->find($id);
 
     if (!$user) {
         return new JsonResponse(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
     }
 
-    return new JsonResponse([
-        'user_id' => $user->getId(),
-        'username' => $user->getUsername(),
-        'email' => $user->getEmail(),
-        'avatar' => $user->getAvatar(),
-        'place' => $user->getPlace(),
-        'banner' => $user->getBanner(),
-        'link' => $user->getLink(),
-        'bio' => $user->getBio(),
-    ], Response::HTTP_OK);
+    // Récupérer les données depuis form-data
+    $username = $request->request->get('username', $user->getUsername());
+    $email = $request->request->get('email', $user->getEmail());
+    $bio = $request->request->get('bio', $user->getBio());
+    $place = $request->request->get('place', $user->getPlace());
+    $link = $request->request->get('link', $user->getLink());
+
+    $user->setUsername($username);
+    $user->setEmail($email);
+    $user->setBio($bio);
+    $user->setPlace($place);
+    $user->setLink($link);
+
+    $uploadDir = $this->getParameter('upload_directory');
+
+    // Handle avatar upload
+    $avatar = $request->files->get('avatar');
+    if ($avatar && $avatar instanceof UploadedFile) {
+        if (!is_dir($uploadDir)) {
+            return new JsonResponse(['message' => 'Upload directory does not exist'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        // Supprimer l'ancien avatar s'il existe
+        if ($user->getAvatar()) {
+            $oldAvatarPath = $uploadDir . '/' . $user->getAvatar();
+            if (file_exists($oldAvatarPath)) {
+                unlink($oldAvatarPath);
+            }
+        }
+
+        $avatarFileName = uniqid() . '.' . $avatar->guessExtension();
+        try {
+            $avatar->move($uploadDir, $avatarFileName);
+            $user->setAvatar($avatarFileName);
+        } catch (\Exception $e) {
+            return new JsonResponse(['message' => 'Failed to upload avatar: ' . $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Handle banner upload
+    $banner = $request->files->get('banner');
+    if ($banner && $banner instanceof UploadedFile) {
+        if (!is_dir($uploadDir)) {
+            return new JsonResponse(['message' => 'Upload directory does not exist'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        // Supprimer l'ancienne bannière si elle existe
+        if ($user->getBanner()) {
+            $oldBannerPath = $uploadDir . '/' . $user->getBanner();
+            if (file_exists($oldBannerPath)) {
+                unlink($oldBannerPath);
+            }
+        }
+
+        $bannerFileName = uniqid() . '.' . $banner->guessExtension();
+        try {
+            $banner->move($uploadDir, $bannerFileName);
+            $user->setBanner($bannerFileName);
+        } catch (\Exception $e) {
+            return new JsonResponse(['message' => 'Failed to upload banner: ' . $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    $errors = $validator->validate($user);
+    if (count($errors) > 0) {
+        return $this->json($errors, Response::HTTP_BAD_REQUEST);
+    }
+
+    $entityManager->flush();
+
+    return new JsonResponse(['status' => 'Profile updated successfully'], Response::HTTP_OK);
 }
+
 };

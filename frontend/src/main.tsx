@@ -12,6 +12,8 @@ import { Feed } from './routes/feed';
 import { Write } from './routes/write';
 import Profile from './routes/profile';
 
+import EditProfile from './routes/editProfile';
+
 import { Admin } from './routes/admin';
 import { EditUser } from './routes/editUser';
 
@@ -32,8 +34,12 @@ const router = createBrowserRouter([
       },
       {
         path: 'profile',
-        element: <Profile/>
-      }
+        element: <Profile/>,
+      },
+      {
+        path: 'profile/edit',
+        element: <EditProfile />
+      },
     ],
   },
   {
