@@ -6,6 +6,8 @@ import Input from '../ui/Input/Input';
 import Button from '../ui/Button/Button';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../lib/api-request';
+import { Link } from 'react-router-dom';
+import { ArrowIcon } from '../ui/Icon/arrow';
 
 interface User {
     user_id: number;
@@ -92,6 +94,9 @@ export default function EditProfile() {
     return (
         <div className="flex flex-col items-center h-screen bg-custom py-4 pb-12 gap-8 overflow-scroll">
             <h2 className='text-custom font-bold text-2xl'>Edit Profile</h2>
+            <Link to="/profile">
+                <ArrowIcon className="absolute top-0 left-0 m-4" alt="Back-arrow" />
+            </Link>
             <div className='flex flex-col w-full justify-center items-center'>
                 <Banner banner={user.banner || defaultBanner} className="w-full overflow-hidden aspect-custom-banner" />
                 <p className='text-custom font-medium self-start pl-5'>Edit Banner:</p>

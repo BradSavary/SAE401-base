@@ -5,12 +5,13 @@ import Banner from '../ui/Profile/Banner';
 import Bio from '../ui/Profile/Bio';
 import Place from '../ui/Profile/Place';
 import Site from '../ui/Profile/Link';
-import Skeleton from '../components/Backoffice/Profile/Skeleton';
+import {ProfileSkeleton as Skeleton} from '../components/Profile/Skeleton';
 import Button from '../ui/Button/Button';
-import { Link } from 'react-router-dom';
+import {  Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api-request';
 import { Post } from '../components/Post/Post';
-import { timeAgo } from '../lib/utils'; // Import de la fonction timeAgo
+import { timeAgo } from '../lib/utils';
+import { SettingsIcon } from '../ui/Icon/settings';
 
 interface User {
     user_id: number;
@@ -33,6 +34,7 @@ interface PostData {
         timezone: string;
     };
     avatar: string | null;
+    user_id: number; // Added user_id property
 }
 
 const defaultAvatar = '../../public/default-avata.webp';
@@ -44,6 +46,9 @@ export default function Profile() {
     const [posts, setPosts] = useState<PostData[]>([]); // État pour les posts de l'utilisateur
     const [loadingPosts, setLoadingPosts] = useState<boolean>(false); // État pour le chargement des posts
     const user_id = localStorage.getItem('user_id');
+    const handleDeletePost = (postId: number) => {
+        setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+    };
 
     useEffect(() => {
         async function fetchUserProfile() {
@@ -64,6 +69,7 @@ export default function Profile() {
                     const response = await apiRequest(`/posts/user/${user_id}`);
                     const data = await response.json();
                     setPosts(data); // Mettre à jour les posts
+                    console.log(posts);
                 } catch (error) {
                     console.error('Error fetching user posts:', error);
                 } finally {
@@ -72,10 +78,11 @@ export default function Profile() {
             }
         }
         fetchUserPosts();
+        
     }, [activeTab, user_id]);
 
     if (!user) {
-        return <Skeleton count={1} />;
+        return <Skeleton />;
     }
 
     return (
@@ -87,6 +94,10 @@ export default function Profile() {
                     <Link to="/profile/edit">
                         <Button variant="quaternary">Edit</Button>
                     </Link>
+                        {/* <Button variant="quaternary" className="flex items-center gap-2 cursor-pointer">
+                            Settings
+                            <SettingsIcon size='small' className="w-5 h-5" alt="Settings" />
+                        </Button> */}
                 </div>
                 <div className='flex flex-col w-full max-w-2xl gap-3'>
                     <div>
@@ -118,18 +129,21 @@ export default function Profile() {
                 {activeTab === 'posts' && (
                     <div className="w-full">
                         {loadingPosts ? (
-                            <Skeleton count={3} />
-                        ) : (
-                            posts.map(post => (
-                                <Post
-                                    key={post.id}
-                                    username={post.username}
-                                    content={post.content}
-                                    date={timeAgo(new Date(post.created_at.date))} // Conversion de la date
-                                    avatar={post.avatar ?? undefined}
-                                />
-                            ))
-                        )}
+                                <></>
+                            ) : (
+                                posts.map(post => (
+                                    <Post
+                                        key={post.id}
+                                        username={post.username}
+                                        content={post.content}
+                                        date={timeAgo(new Date(post.created_at.date))}
+                                        avatar={post.avatar ?? undefined}
+                                        user_id={post.user_id}
+                                        post_id={post.id}
+                                        onDelete={handleDeletePost}
+                                    />
+                                ))
+                            )}
                     </div>
                 )}
                 {activeTab === 'likes' && (

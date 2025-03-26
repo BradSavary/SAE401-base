@@ -11,9 +11,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Core\Security;
 use App\Repository\PostRepository;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Security\Core\Security;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use App\Entity\User;
@@ -48,6 +48,7 @@ public function index(Request $request, PostRepository $postRepository): Respons
             'created_at' => $post->getCreatedAt(),
             'username' => $user->getUsername(),
             'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+            'user_id' => $user->getId()
         ];
     }
 
@@ -105,11 +106,40 @@ public function getUserPosts(int $id, PostRepository $postRepository, EntityMana
             'created_at' => $post->getCreatedAt(),
             'username' => $user->getUsername(),
             'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+            "user_id" => $user->getId()
         ];
     }
 
     return new JsonResponse($postData, JsonResponse::HTTP_OK);
 }
 
+    #[Route('/posts/{id}', name: 'posts.delete', methods: ['DELETE'])]
+    #[IsGranted("ROLE_USER")]
+    public function delete(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $post = $postRepository->find($id);
+
+        if (!$post) {
+            return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        $currentUser = $this->getUser();
+
+        if ($this->isGranted('ROLE_ADMIN')) {
+            $entityManager->remove($post);
+            $entityManager->flush();
+
+            return new JsonResponse(["error"=>"Post deleted", 'status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
+        }
+
+        if ($post->getUser() !== $currentUser) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $entityManager->remove($post);
+        $entityManager->flush();
+
+        return new JsonResponse(["error"=>"Post deleted", 'status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
+    }
 
 }

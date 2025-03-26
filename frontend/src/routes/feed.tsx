@@ -5,6 +5,8 @@ import { PostSkeleton } from '../components/Post/PostSkeleton';
 import { timeAgo } from '../lib/utils';
 import { ThreadsIcon } from '../ui/LogoIcon/threads';
 import { useNavigate } from 'react-router-dom';
+import RefreshButton from '../ui/Refresh/index'; 
+
 
 interface PostData {
   id: number;
@@ -12,6 +14,7 @@ interface PostData {
   content: string;
   created_at: string;
   avatar: string; // Added avatar property
+  user_id: number; // Ajout de la propriété user_id
 }
 
 async function fetchFeedPosts(page: number) {
@@ -34,6 +37,14 @@ function Feed(): JSX.Element {
   const navigate = useNavigate();
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostRef = useRef<HTMLDivElement | null>(null);
+  const [refreshRate, setRefreshRate] = useState<number>(
+    parseInt(localStorage.getItem('refreshRate') || '5000', 10) // Valeur par défaut : 5000ms
+);
+
+  const handleDeletePost = (postId: number) => {
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+  };
+
 
   useEffect(() => {
     async function loadPosts() {
@@ -47,7 +58,7 @@ function Feed(): JSX.Element {
       try {
         const data = await fetchFeedPosts(page);
   
-        // Évitez les doublons en vérifiant les IDs des posts
+        // Évite les doublons en vérifiant les IDs des posts
         setPosts(prevPosts => {
           const existingPostIds = new Set(prevPosts.map(post => post.id));
           const newPosts = (data.posts as PostData[]).filter((post: PostData) => !existingPostIds.has(post.id));
@@ -90,6 +101,21 @@ function Feed(): JSX.Element {
       </section>
     );
   }
+  
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchFeedPosts(1); // Recharge les posts depuis la première page
+      setPosts(data.posts as PostData[]); // Remplace les posts existants par les nouveaux
+      setPage(1); // Réinitialise la pagination
+      setHasMore(data.next_page !== null);
+    } catch (error) {
+      setError('Failed to refresh posts');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (error) {
     return <div>{error}</div>;
@@ -98,16 +124,18 @@ function Feed(): JSX.Element {
   return (
     <section className='bg-custom pb-15 flex flex-col w-full h-screen'>
         <ThreadsIcon size="large" className='self-center my-6' />
+        <RefreshButton onRefresh={handleRefresh} />
       <div className='overflow-y-auto flex-1 scrollbar-thin'>
         {posts.map((post, index) => (
-          <div ref={index === posts.length - 1 ? lastPostRef : null} key={`${post.id}-${index}`}>
-        <Post
+          <Post
           username={post.username}
           content={post.content}
           date={timeAgo(new Date(post.created_at))}
           avatar={post.avatar}
+          user_id={post.user_id}
+          post_id={post.id} // Passer l'ID du post
+          onDelete={handleDeletePost} // Passer la fonction de suppression
         />
-          </div>
         ))}
         {loading && <PostSkeleton />}
       </div>
