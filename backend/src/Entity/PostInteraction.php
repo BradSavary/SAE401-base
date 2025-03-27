@@ -17,10 +17,10 @@ class PostInteraction
     private ?string $type = null;
 
     #[ORM\Column]
-    private ?int $post_id = null;
+    private ?int $postId = null;
 
     #[ORM\Column]
-    private ?int $user_id = null;
+    private ?int $userId = null;
 
     public function getId(): ?int
     {
@@ -41,24 +41,24 @@ class PostInteraction
 
     public function getPostId(): ?int
     {
-        return $this->post_id;
+        return $this->postId;
     }
 
-    public function setPostId(int $post_id): static
+    public function setPostId(int $postId): static
     {
-        $this->post_id = $post_id;
+        $this->postId = $postId;
 
         return $this;
     }
 
     public function getUserId(): ?int
     {
-        return $this->user_id;
+        return $this->userId;
     }
 
-    public function setUserId(int $user_id): static
+    public function setUserId(int $userId): static
     {
-        $this->user_id = $user_id;
+        $this->userId = $userId;
 
         return $this;
     }
