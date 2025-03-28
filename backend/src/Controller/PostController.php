@@ -14,6 +14,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Repository\PostRepository;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Security\Core\Security;
+use App\Repository\PostInteractionRepository;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use App\Entity\User;
@@ -22,42 +23,49 @@ final class PostController extends AbstractController
 {
 
     #[Route('/posts', name: 'posts.index', methods: ['GET'])]
-public function index(Request $request, PostRepository $postRepository): Response
-{
-    $page = (int) $request->query->get('page', 1);
-    $offset = ($page - 1) * 15;
+    public function index(Request $request, PostRepository $postRepository): Response
+    {
+        $page = (int) $request->query->get('page', 1);
+        $offset = ($page - 1) * 15;
 
-    $paginator = $postRepository->paginateAllOrderedByLatest($offset, 15);
-    $totalPostsCount = $paginator->count();
+        $paginator = $postRepository->paginateAllOrderedByLatest($offset, 15);
+        $totalPostsCount = $paginator->count();
 
-    $previousPage = $page > 1 ? $page - 1 : null;
-    $nextPage = ($offset + 15) < $totalPostsCount ? $page + 1 : null;
+        $previousPage = $page > 1 ? $page - 1 : null;
+        $nextPage = ($offset + 15) < $totalPostsCount ? $page + 1 : null;
 
-    // Récupérer les paramètres pour construire les URLs des avatars
-    $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
-    $uploadDir = $this->getParameter('upload_directory');
+        // Récupérer les paramètres pour construire les URLs des avatars
+        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+        $uploadDir = $this->getParameter('upload_directory');
 
-    $posts = [];
-    foreach ($paginator as $post) {
-        $user = $post->getUser();
-        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+        $currentUser = $this->getUser();
 
-        $posts[] = [
-            'id' => $post->getId(),
-            'content' => $post->getContent(),
-            'created_at' => $post->getCreatedAt(),
-            'username' => $user->getUsername(),
-            'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
-            'user_id' => $user->getId()
-        ];
+        $posts = [];
+        foreach ($paginator as $post) {
+            $user = $post->getUser();
+            $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+
+            $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
+
+            $posts[] = [
+                'id' => $post->getId(),
+                'content' => $post->getContent(),
+                'created_at' => $post->getCreatedAt(),
+                'username' => $user->getUsername(),
+                'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+                'user_id' => $user->getId(),
+                'likes' => $post->getLikesCount(),
+                'userLiked' => $isLiked
+            ];
+        }
+
+        return $this->json([
+            'posts' => $posts,
+            'previous_page' => $previousPage,
+            'next_page' => $nextPage
+        ]);
     }
 
-    return $this->json([
-        'posts' => $posts,
-        'previous_page' => $previousPage,
-        'next_page' => $nextPage
-    ]);
-}
 
     #[Route('/posts', name: 'posts.create', methods: ['POST'])]
     public function create(
@@ -80,38 +88,45 @@ public function index(Request $request, PostRepository $postRepository): Respons
     }
 
     #[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]
-public function getUserPosts(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
-{
-    // Vérifiez si l'utilisateur existe
-    $user = $entityManager->getRepository(User::class)->find($id);
+    public function getUserPosts(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
+    {
+        // Vérifiez si l'utilisateur existe
+        $user = $entityManager->getRepository(User::class)->find($id);
 
-    if (!$user) {
-        return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // Récupérez les posts de l'utilisateur
+        $posts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
+
+        // Récupérer les paramètres pour construire les URLs des avatars
+        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+        $uploadDir = $this->getParameter('upload_directory');
+
+        $currentUser = $this->getUser();
+
+        $postData = [];
+        foreach ($posts as $post) {
+            $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+
+            $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
+
+            $postData[] = [
+                'id' => $post->getId(),
+                'content' => $post->getContent(),
+                'created_at' => $post->getCreatedAt(),
+                'username' => $user->getUsername(),
+                'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+                'user_id' => $user->getId(),
+                'likes' => $post->getLikesCount(),
+                'userLiked' => $isLiked
+            ];
+        }
+
+        return new JsonResponse($postData, JsonResponse::HTTP_OK);
     }
 
-    // Récupérez les posts de l'utilisateur
-    $posts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
-
-    // Récupérer les paramètres pour construire les URLs des avatars
-    $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
-    $uploadDir = $this->getParameter('upload_directory');
-
-    $postData = [];
-    foreach ($posts as $post) {
-        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
-
-        $postData[] = [
-            'id' => $post->getId(),
-            'content' => $post->getContent(),
-            'created_at' => $post->getCreatedAt(),
-            'username' => $user->getUsername(),
-            'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
-            "user_id" => $user->getId()
-        ];
-    }
-
-    return new JsonResponse($postData, JsonResponse::HTTP_OK);
-}
 
     #[Route('/posts/{id}', name: 'posts.delete', methods: ['DELETE'])]
     #[IsGranted("ROLE_USER")]
@@ -142,4 +157,42 @@ public function getUserPosts(int $id, PostRepository $postRepository, EntityMana
         return new JsonResponse(["error"=>"Post deleted", 'status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
     }
 
+    #[Route('/posts/liked/{id}', name: 'posts.liked', methods: ['GET'])]
+    public function getLikedPostsByUser(
+        int $id,
+        PostInteractionRepository $postInteractionRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        // Vérifiez si l'utilisateur existe
+        $user = $entityManager->getRepository(User::class)->find($id);
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // Récupérez les posts likés par l'utilisateur
+        $likedPosts = $postInteractionRepository->findLikedPostsByUser($user);
+
+        // Récupérer les paramètres pour construire les URLs des avatars
+        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+        $uploadDir = $this->getParameter('upload_directory');
+
+        $postData = [];
+        foreach ($likedPosts as $interaction) {
+            $post = $interaction->getPost();
+            $postUser = $post->getUser();
+            $avatarUrl = $postUser->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $postUser->getAvatar() : null;
+
+            $postData[] = [
+                'id' => $post->getId(),
+                'content' => $post->getContent(),
+                'created_at' => $post->getCreatedAt(),
+                'username' => $postUser->getUsername(),
+                'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+                'likes' => $post->getLikesCount(),
+            ];
+        }
+
+        return new JsonResponse($postData, JsonResponse::HTTP_OK);
+    }
 }

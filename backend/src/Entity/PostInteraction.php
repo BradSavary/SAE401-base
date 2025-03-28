@@ -4,8 +4,10 @@ namespace App\Entity;
 
 use App\Repository\PostInteractionRepository;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\Post;
+use App\Entity\User;
 
-#[ORM\Entity(repositoryClass: PostInteractionRepository::class)]
+#[ORM\Entity]
 class PostInteraction
 {
     #[ORM\Id]
@@ -13,18 +15,39 @@ class PostInteraction
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\ManyToOne(targetEntity: Post::class, inversedBy: 'interactions')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Post $post = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $user = null;
+
+    #[ORM\Column(length: 50)]
     private ?string $type = null;
 
-    #[ORM\Column]
-    private ?int $postId = null;
-
-    #[ORM\Column]
-    private ?int $userId = null;
-
-    public function getId(): ?int
+    public function getPost(): ?Post
     {
-        return $this->id;
+        return $this->post;
+    }
+
+    public function setPost(?Post $post): self
+    {
+        $this->post = $post;
+
+        return $this;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): self
+    {
+        $this->user = $user;
+
+        return $this;
     }
 
     public function getType(): ?string
@@ -32,34 +55,11 @@ class PostInteraction
         return $this->type;
     }
 
-    public function setType(string $type): static
+    public function setType(string $type): self
     {
         $this->type = $type;
 
         return $this;
     }
-
-    public function getPostId(): ?int
-    {
-        return $this->postId;
-    }
-
-    public function setPostId(int $postId): static
-    {
-        $this->postId = $postId;
-
-        return $this;
-    }
-
-    public function getUserId(): ?int
-    {
-        return $this->userId;
-    }
-
-    public function setUserId(int $userId): static
-    {
-        $this->userId = $userId;
-
-        return $this;
-    }
+    
 }

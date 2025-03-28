@@ -1,7 +1,8 @@
-import React, { JSX, useState } from 'react';
-import { timeAgo } from '../../lib/utils';
+import React, { JSX, useState, useEffect } from 'react';
 import { DotsIcon } from '../../ui/Icon/3dots';
 import { apiRequest } from '../../lib/api-request';
+import { LikeIcon } from '../../ui/NavBarIcon/like';
+import { LikeIcon as LikeSIcon } from '../../ui/NavBarIcon/likeS';
 
 interface PostProps {
   username: string;
@@ -9,14 +10,32 @@ interface PostProps {
   date: string;
   avatar?: string;
   user_id: number;
-  post_id: number; // Ajout de l'ID du post
-  onDelete: (postId: number) => void; // Callback pour informer le parent
+  post_id: number;
+  onDelete: (postId: number) => void;
+  userLiked: boolean;
 }
 
-function Post({ username, content, date, avatar, user_id, post_id, onDelete }: PostProps): JSX.Element {
+function Post({ username, content, date, avatar, user_id, post_id, onDelete, userLiked }: PostProps): JSX.Element {
   const [showPopup, setShowPopup] = useState(false);
+  const [liked, setLiked] = useState(userLiked); // Initialisé avec userLiked
+  const [likeCount, setLikeCount] = useState(0);
 
   const connectedUserId = Number(localStorage.getItem('user_id'));
+
+  useEffect(() => {
+    // Fetch the initial like count
+    const fetchLikes = async () => {
+      try {
+        const response = await apiRequest(`/post/like/${post_id}`, { method: 'GET' });
+        const data = await response.json();
+        setLikeCount(data.likes); // Met à jour le nombre de likes
+      } catch (error) {
+        console.error('Error fetching likes:', error);
+      }
+    };
+
+    fetchLikes();
+  }, [post_id]);
 
   const togglePopup = () => {
     setShowPopup(!showPopup);
@@ -24,19 +43,35 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete }: P
 
   const deletePost = async () => {
     try {
-        const response = await apiRequest(`/posts/${post_id}`, {
-            method: 'DELETE',
-        });
+      const response = await apiRequest(`/posts/${post_id}`, { method: 'DELETE' });
 
-        if (response.ok) {
-            onDelete(post_id); // Informer le parent que le post a été supprimé
-        } else {
-            console.error('Failed to delete post');
-        }
+      if (response.ok) {
+        onDelete(post_id);
+      } else {
+        console.error('Failed to delete post');
+      }
     } catch (error) {
-        console.error('Error deleting post:', error);
+      console.error('Error deleting post:', error);
     }
-};
+  };
+
+  const handleLike = async () => {
+    try {
+      const response = await apiRequest(`/post/like/${post_id}`, {
+        method: liked ? 'DELETE' : 'POST', // DELETE pour unlike, POST pour like
+        body: JSON.stringify({ user_id: Number(localStorage.getItem('user_id')) }),
+      });
+  
+      if (response.ok) {
+        setLiked(!liked); // Inverse l'état du like
+        setLikeCount(prev => (liked ? prev - 1 : prev + 1)); // Met à jour le compteur
+      } else {
+        console.error('Failed to toggle like');
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
 
   return (
     <div className='flex flex-row w-full'>
@@ -76,6 +111,16 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete }: P
         </div>
         <div className="text-gray-800 text-custom-light-gray max-w-full">
           {content}
+        </div>
+        <div className="flex items-center mt-2">
+          <button onClick={handleLike} className="flex items-center gap-1 cursor-pointer">
+            {liked ? (
+              <LikeSIcon className="w-6 h-6 text-red-500" alt="Liked" />
+            ) : (
+              <LikeIcon className="w-5 h-5 text-gray-500" alt="Like" />
+            )}
+            <span className="text-sm text-gray-700">{likeCount}</span>
+          </button>
         </div>
       </div>
     </div>

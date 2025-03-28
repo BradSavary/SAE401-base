@@ -15,6 +15,7 @@ interface PostData {
   created_at: string;
   avatar: string; // Added avatar property
   user_id: number; // Ajout de la propriété user_id
+  userLiked: boolean; // Added userLiked property
 }
 
 async function fetchFeedPosts(page: number) {
@@ -100,15 +101,16 @@ function Feed(): JSX.Element {
       <div className='overflow-y-auto flex-1 scrollbar-thin'>
         {posts.map((post, index) => (
           <Post
-            key={post.id}
-            username={post.username}
-            content={post.content}
-            date={timeAgo(new Date(post.created_at))}
-            avatar={post.avatar}
-            user_id={post.user_id}
-            post_id={post.id}
-            onDelete={handleDeletePost}
-          />
+          key={post.id}
+          username={post.username}
+          content={post.content}
+          date={timeAgo(new Date(post.created_at))}
+          avatar={post.avatar}
+          user_id={post.user_id}
+          post_id={post.id}
+          onDelete={handleDeletePost}
+          userLiked={post.userLiked} // Passe l'état du like
+        />
         ))}
         {loading && <PostSkeleton />}
         <div ref={lastPostRef} className="h-1" />

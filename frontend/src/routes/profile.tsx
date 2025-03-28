@@ -5,9 +5,9 @@ import Banner from '../ui/Profile/Banner';
 import Bio from '../ui/Profile/Bio';
 import Place from '../ui/Profile/Place';
 import Site from '../ui/Profile/Link';
-import {ProfileSkeleton as Skeleton} from '../components/Profile/Skeleton';
+import { ProfileSkeleton as Skeleton } from '../components/Profile/Skeleton';
 import Button from '../ui/Button/Button';
-import {  Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { apiRequest } from '../lib/api-request';
 import { Post } from '../components/Post/Post';
 import { timeAgo } from '../lib/utils';
@@ -35,6 +35,7 @@ interface PostData {
     };
     avatar: string | null;
     user_id: number; // Added user_id property
+    userLiked?: boolean; // Optional property to indicate if the user liked the post
 }
 
 const defaultAvatar = '../../public/default-avata.webp';
@@ -78,7 +79,49 @@ export default function Profile() {
             }
         }
         fetchUserPosts();
-        
+
+    }, [activeTab, user_id]);
+
+    useEffect(() => {
+        // Charger les posts de l'utilisateur lorsque l'onglet "Your posts" est actif
+        async function fetchUserPosts() {
+            if (activeTab === 'posts' && user_id) {
+                setLoadingPosts(true);
+                try {
+                    const response = await apiRequest(`/posts/user/${user_id}`);
+                    const data = await response.json();
+                    const updatedPosts = data.map((post: PostData) => ({
+                        ...post,
+                        userLiked: post.userLiked || false, // Ajoute la propriété userLiked
+                    }));
+                    setPosts(updatedPosts); // Mettre à jour les posts
+                } catch (error) {
+                    console.error('Error fetching user posts:', error);
+                } finally {
+                    setLoadingPosts(false);
+                }
+            }
+        }
+        fetchUserPosts();
+    }, [activeTab, user_id]);
+
+    useEffect(() => {
+        // Charger les posts likés par l'utilisateur lorsque l'onglet "Your likes" est actif
+        async function fetchLikedPosts() {
+            if (activeTab === 'likes' && user_id) {
+                setLoadingPosts(true);
+                try {
+                    const response = await apiRequest(`/posts/liked/${user_id}`);
+                    const data = await response.json();
+                    setPosts(data); // Mettre à jour les posts avec les posts likés
+                } catch (error) {
+                    console.error('Error fetching liked posts:', error);
+                } finally {
+                    setLoadingPosts(false);
+                }
+            }
+        }
+        fetchLikedPosts();
     }, [activeTab, user_id]);
 
     if (!user) {
@@ -94,7 +137,7 @@ export default function Profile() {
                     <Link to="/profile/edit">
                         <Button variant="quaternary">Edit</Button>
                     </Link>
-                        {/* <Button variant="quaternary" className="flex items-center gap-2 cursor-pointer">
+                    {/* <Button variant="quaternary" className="flex items-center gap-2 cursor-pointer">
                             Settings
                             <SettingsIcon size='small' className="w-5 h-5" alt="Settings" />
                         </Button> */}
@@ -129,26 +172,42 @@ export default function Profile() {
                 {activeTab === 'posts' && (
                     <div className="w-full">
                         {loadingPosts ? (
-                                <></>
-                            ) : (
-                                posts.map(post => (
-                                    <Post
-                                        key={post.id}
-                                        username={post.username}
-                                        content={post.content}
-                                        date={timeAgo(new Date(post.created_at.date))}
-                                        avatar={post.avatar ?? undefined}
-                                        user_id={post.user_id}
-                                        post_id={post.id}
-                                        onDelete={handleDeletePost}
-                                    />
-                                ))
-                            )}
+                            <></>
+                        ) : (
+                            posts.map(post => (
+                                <Post
+                                    key={post.id}
+                                    username={post.username}
+                                    content={post.content}
+                                    date={timeAgo(new Date(post.created_at.date))}
+                                    avatar={post.avatar ?? undefined}
+                                    user_id={post.user_id}
+                                    post_id={post.id}
+                                    onDelete={handleDeletePost}
+                                    userLiked={post.userLiked ?? false} // Passe l'état du like
+                                />
+                            ))
+                        )}
                     </div>
                 )}
                 {activeTab === 'likes' && (
-                    <div className="text-center text-custom-light-gray">
-                        <p>Likes feature is not implemented yet.</p>
+                    <div className="w-full">
+                        {loadingPosts ? (
+                            <p>Loading liked posts...</p>
+                        ) : (
+                            posts.map(post => (
+                                <Post
+                                    key={post.id}
+                                    username={post.username}
+                                    content={post.content}
+                                    date={timeAgo(new Date(post.created_at.date))}
+                                    avatar={post.avatar ?? undefined}
+                                    user_id={post.user_id}
+                                    post_id={post.id}
+                                    userLiked={true} // Les posts dans cet onglet sont forcément likés
+                                />
+                            ))
+                        )}
                     </div>
                 )}
             </div>

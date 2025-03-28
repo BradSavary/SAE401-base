@@ -6,6 +6,7 @@ use App\Entity\Post;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\Tools\Pagination\Paginator;
+use App\Entity\User;
 
 /**
  * @extends ServiceEntityRepository<Post>
@@ -27,6 +28,17 @@ class PostRepository extends ServiceEntityRepository
     ;
 
     return new Paginator($query);
+}
+
+public function findLikedPostsByUser(User $user): array
+{
+    return $this->createQueryBuilder('p')
+        ->join('p.likes', 'l')
+        ->where('l.user = :user')
+        ->setParameter('user', $user)
+        ->orderBy('p.created_at', 'DESC')
+        ->getQuery()
+        ->getResult();
 }
 
     //    /**
