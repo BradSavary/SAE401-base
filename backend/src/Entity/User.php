@@ -10,10 +10,16 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
+
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    #[ORM\OneToMany(mappedBy: 'subscriber', targetEntity: Subscription::class)]
+private Collection $subscriptions;
+
+#[ORM\OneToMany(mappedBy: 'subscribedTo', targetEntity: Subscription::class)]
+private Collection $subscribers;
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -77,6 +83,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __construct()
     {
         $this->posts = new ArrayCollection();
+        $this->subscriptions = new ArrayCollection();
+        $this->subscribers = new ArrayCollection();    
+    }
+
+    public function getSubscriptions(): Collection
+    {
+        return $this->subscriptions;
+    }
+    
+    public function getSubscribers(): Collection
+    {
+        return $this->subscribers;
     }
 
     public function getIsVerified(): bool
