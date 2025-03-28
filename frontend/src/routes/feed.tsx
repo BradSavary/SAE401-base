@@ -39,6 +39,14 @@ function Feed(): JSX.Element {
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostRef = useRef<HTMLDivElement | null>(null);
 
+  const refreshFeed = async () => {
+    setPosts([]); // Réinitialise les posts
+    setPage(1); // Réinitialise la pagination
+    setHasMore(true); // Réinitialise l'état de "hasMore"
+    setError(null); // Réinitialise les erreurs
+    await loadPosts(1); // Recharge les posts de la première page
+  };
+
   const handleDeletePost = (postId: number) => {
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
@@ -53,6 +61,7 @@ function Feed(): JSX.Element {
     setLoading(true);
     try {
       const data = await fetchFeedPosts(currentPage);
+      console.log('Fetched posts:', data.posts);
 
       setPosts(prevPosts => {
         const existingPostIds = new Set(prevPosts.map(post => post.id));
@@ -97,7 +106,7 @@ function Feed(): JSX.Element {
   return (
     <section className='bg-custom pb-15 flex flex-col w-full h-screen'>
       <ThreadsIcon size="large" className='self-center my-6' />
-      <RefreshButton onRefresh={() => loadPosts(1)} />
+      <RefreshButton onRefresh={refreshFeed} />
       <div className='overflow-y-auto flex-1 scrollbar-thin'>
         {posts.map((post, index) => (
           <Post

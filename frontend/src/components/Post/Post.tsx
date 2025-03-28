@@ -17,18 +17,18 @@ interface PostProps {
 
 function Post({ username, content, date, avatar, user_id, post_id, onDelete, userLiked }: PostProps): JSX.Element {
   const [showPopup, setShowPopup] = useState(false);
-  const [liked, setLiked] = useState(userLiked); // Initialisé avec userLiked
+  const [liked, setLiked] = useState(userLiked);
   const [likeCount, setLikeCount] = useState(0);
+  const [showConfirm, setShowConfirm] = useState(false); // État pour afficher la confirmation
 
   const connectedUserId = Number(localStorage.getItem('user_id'));
 
   useEffect(() => {
-    // Fetch the initial like count
     const fetchLikes = async () => {
       try {
         const response = await apiRequest(`/post/like/${post_id}`, { method: 'GET' });
         const data = await response.json();
-        setLikeCount(data.likes); // Met à jour le nombre de likes
+        setLikeCount(data.likes);
       } catch (error) {
         console.error('Error fetching likes:', error);
       }
@@ -41,7 +41,7 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
     setShowPopup(!showPopup);
   };
 
-  const deletePost = async () => {
+  const confirmDelete = async () => {
     try {
       const response = await apiRequest(`/posts/${post_id}`, { method: 'DELETE' });
 
@@ -52,19 +52,21 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
       }
     } catch (error) {
       console.error('Error deleting post:', error);
+    } finally {
+      setShowConfirm(false); // Fermer la confirmation après suppression
     }
   };
 
   const handleLike = async () => {
     try {
       const response = await apiRequest(`/post/like/${post_id}`, {
-        method: liked ? 'DELETE' : 'POST', // DELETE pour unlike, POST pour like
-        body: JSON.stringify({ user_id: Number(localStorage.getItem('user_id')) }),
+        method: liked ? 'DELETE' : 'POST',
+        body: JSON.stringify({ user_id: connectedUserId }),
       });
-  
+
       if (response.ok) {
-        setLiked(!liked); // Inverse l'état du like
-        setLikeCount(prev => (liked ? prev - 1 : prev + 1)); // Met à jour le compteur
+        setLiked(!liked);
+        setLikeCount(prev => (liked ? prev - 1 : prev + 1));
       } else {
         console.error('Failed to toggle like');
       }
@@ -95,7 +97,7 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
                     </button>
                     <button
                       className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                      onClick={deletePost}
+                      onClick={() => setShowConfirm(true)} // Afficher la confirmation
                     >
                       Delete
                     </button>
@@ -123,6 +125,29 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
           </button>
         </div>
       </div>
+
+      {/* Modal de confirmation */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
+          <div className="bg-white p-6 rounded shadow-lg">
+            <p className="text-lg mb-4">Are you sure you want to delete this post?</p>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                onClick={() => setShowConfirm(false)} // Annuler
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                onClick={confirmDelete} // Confirmer la suppression
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

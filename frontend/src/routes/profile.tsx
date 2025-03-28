@@ -205,6 +205,7 @@ export default function Profile() {
                                     user_id={post.user_id}
                                     post_id={post.id}
                                     userLiked={true} // Les posts dans cet onglet sont forcément likés
+                                    onDelete={handleDeletePost}
                                 />
                             ))
                         )}
