@@ -133,7 +133,7 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
 
       {/* Modal de confirmation */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-20">
           <div className="bg-white p-6 rounded shadow-lg">
             <p className="text-lg mb-4">Are you sure you want to delete this post?</p>
             <div className="flex justify-end gap-4">

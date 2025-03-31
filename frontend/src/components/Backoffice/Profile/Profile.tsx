@@ -23,7 +23,7 @@ const Profile = ({ users }: ProfileProps) => {
     return (
         <div className="bg-custom flex flex-col items-center w-full pt-6 overflow-scroll">
             {users.map(user => (
-                <div key={user.user_id} className='flex flex-row items-center w-full m-1 py-2 border-b border-custom-gray px-4 justify-between'>
+                <div key={user.user_id} className='flex flex-row items-center w-full py-2 border-b border-custom-gray px-4 justify-between'>
                     <img
                         src={user.avatar || '../../../public/default-avata.webp'} // Utilisation de l'URL de l'avatar
                         className='rounded-full max-w-8 max-h-8 aspect-square'
