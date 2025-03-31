@@ -19,7 +19,7 @@ final class Version20250328113147 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
+        // Check if the column already exists
         $this->addSql('ALTER TABLE post ADD author_id INT NOT NULL');
         $this->addSql('ALTER TABLE post ADD CONSTRAINT FK_5A8A6C8DF675F31B FOREIGN KEY (author_id) REFERENCES user (id)');
         $this->addSql('CREATE INDEX IDX_5A8A6C8DF675F31B ON post (author_id)');

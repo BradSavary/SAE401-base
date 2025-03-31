@@ -21,111 +21,128 @@ use App\Entity\User;
 
 final class PostController extends AbstractController
 {
-
     #[Route('/posts', name: 'posts.index', methods: ['GET'])]
     public function index(Request $request, PostRepository $postRepository): Response
-    {
-        $page = (int) $request->query->get('page', 1);
-        $offset = ($page - 1) * 15;
+{
+    $page = (int) $request->query->get('page', 1);
+    $offset = ($page - 1) * 15;
 
-        $paginator = $postRepository->paginateAllOrderedByLatest($offset, 15);
-        $totalPostsCount = $paginator->count();
+    $paginator = $postRepository->paginateAllOrderedByLatest($offset, 15);
+    $totalPostsCount = $paginator->count();
 
-        $previousPage = $page > 1 ? $page - 1 : null;
-        $nextPage = ($offset + 15) < $totalPostsCount ? $page + 1 : null;
+    $previousPage = $page > 1 ? $page - 1 : null;
+    $nextPage = ($offset + 15) < $totalPostsCount ? $page + 1 : null;
 
-        // Récupérer les paramètres pour construire les URLs des avatars
-        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
-        $uploadDir = $this->getParameter('upload_directory');
+    $baseUrl = $this->getParameter('base_url');
+    $uploadDir = $this->getParameter('upload_directory');
 
-        $currentUser = $this->getUser();
+    $currentUser = $this->getUser();
 
-        $posts = [];
-        foreach ($paginator as $post) {
-            $user = $post->getUser();
-            $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+    $posts = [];
+    foreach ($paginator as $post) {
+        $user = $post->getUser();
 
-            $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
+        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+        $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
 
-            $posts[] = [
-                'id' => $post->getId(),
-                'content' => $post->getContent(),
-                'created_at' => $post->getCreatedAt(),
-                'username' => $user->getUsername(),
-                'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
-                'user_id' => $user->getId(),
-                'likes' => $post->getLikesCount(),
-                'userLiked' => $isLiked
-            ];
+        $postData = [
+            'id' => $post->getId(),
+            'content' => $post->getContent(),
+            'created_at' => $post->getCreatedAt(),
+            'username' => $user->getUsername(),
+            'avatar' => $avatarUrl,
+            'user_id' => $user->getId(),
+            'likes' => $post->getLikesCount(),
+            'userLiked' => $isLiked,
+            'isBlocked' => $user->getIsBlocked(),
+        ];
+
+        if ($user->getIsBlocked()) {
+            $postData['content'] = 'This account has been blocked for violating the terms of use.';
+            $postData['likes'] = 0;
+            $postData['userLiked'] = false;
         }
 
-        return $this->json([
-            'posts' => $posts,
-            'previous_page' => $previousPage,
-            'next_page' => $nextPage
-        ]);
+        $posts[] = $postData;
     }
 
+    return $this->json([
+        'posts' => $posts,
+        'previous_page' => $previousPage,
+        'next_page' => $nextPage
+    ]);
+}
 
-    #[Route('/posts', name: 'posts.create', methods: ['POST'])]
-    public function create(
-        Request $request,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator,
-        PostService $postService
-    ): Response {
-        $payload = $serializer->deserialize($request->getContent(), CreatePostPayload::class, 'json');
-    
-        $errors = $validator->validate($payload);
-        if (count($errors) > 0) {
-            return $this->json($errors, Response::HTTP_BAD_REQUEST);
-        }
-    
-        // Appel au service PostService pour créer le post
-        $postService->create($payload);
-    
-        return new JsonResponse(['status' => 'Post created'], Response::HTTP_CREATED);
+#[Route('/posts', name: 'posts.create', methods: ['POST'])]
+public function create(
+    Request $request,
+    SerializerInterface $serializer,
+    ValidatorInterface $validator,
+    PostService $postService, 
+    EntityManagerInterface $entityManager
+): Response {
+    $currentUser = $this->getUser();
+
+if ($currentUser->getIsBlocked()) {
+    return new JsonResponse(['error' => 'Your account has been blocked. You cannot create posts.'], Response::HTTP_FORBIDDEN);
+}
+
+    $payload = $serializer->deserialize($request->getContent(), CreatePostPayload::class, 'json');
+
+    $errors = $validator->validate($payload);
+    if (count($errors) > 0) {
+        return $this->json($errors, Response::HTTP_BAD_REQUEST);
     }
 
-    #[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]
-    public function getUserPosts(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
-    {
-        // Vérifiez si l'utilisateur existe
-        $user = $entityManager->getRepository(User::class)->find($id);
+    // Appel au service PostService pour créer le post
+    $postService->create($payload);
 
-        if (!$user) {
-            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
-        }
+    return new JsonResponse(['status' => 'Post created'], Response::HTTP_CREATED);
+}
 
-        // Récupérez les posts de l'utilisateur
-        $posts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
+#[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]
+public function getUserPosts(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
+{
+    $user = $entityManager->getRepository(User::class)->find($id);
 
-        // Récupérer les paramètres pour construire les URLs des avatars
-        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
-        $uploadDir = $this->getParameter('upload_directory');
-
-        $currentUser = $this->getUser();
-
-        $postData = [];
-        foreach ($posts as $post) {
-            $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
-
-            $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
-
-            $postData[] = [
-                'id' => $post->getId(),
-                'content' => $post->getContent(),
-                'created_at' => $post->getCreatedAt(),
-                'username' => $user->getUsername(),
-                'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
-                'user_id' => $user->getId(),
-                'likes' => $post->getLikesCount(),
-                'userLiked' => $isLiked
-            ];
-        }
-
-        return new JsonResponse($postData, JsonResponse::HTTP_OK);
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
     }
+
+    $posts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
+
+    $baseUrl = $this->getParameter('base_url');
+    $uploadDir = $this->getParameter('upload_directory');
+    $currentUser = $this->getUser();
+
+    $postData = [];
+    foreach ($posts as $post) {
+        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+        $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
+
+        $postDetails = [
+            'id' => $post->getId(),
+            'content' => $post->getContent(),
+            'created_at' => $post->getCreatedAt(),
+            'username' => $user->getUsername(),
+            'avatar' => $avatarUrl,
+            'user_id' => $user->getId(),
+            'likes' => $post->getLikesCount(),
+            'userLiked' => $isLiked,
+            'isBlocked' => $user->getIsBlocked(), // Ajout de l'état de blocage
+        ];
+
+        if ($user->getIsBlocked()) {
+            $postDetails['content'] = 'This account has been blocked for violating the terms of use.';
+            $postDetails['likes'] = 0;
+            $postDetails['userLiked'] = false;
+        }
+
+        $postData[] = $postDetails;
+    }
+
+    return new JsonResponse($postData, JsonResponse::HTTP_OK);
+}
 
 
     #[Route('/posts/{id}', name: 'posts.delete', methods: ['DELETE'])]
@@ -163,34 +180,44 @@ final class PostController extends AbstractController
         PostInteractionRepository $postInteractionRepository,
         EntityManagerInterface $entityManager
     ): JsonResponse {
-        // Vérifiez si l'utilisateur existe
         $user = $entityManager->getRepository(User::class)->find($id);
 
         if (!$user) {
             return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        // Récupérez les posts likés par l'utilisateur
         $likedPosts = $postInteractionRepository->findLikedPostsByUser($user);
 
-        // Récupérer les paramètres pour construire les URLs des avatars
-        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+        $baseUrl = $this->getParameter('base_url');
         $uploadDir = $this->getParameter('upload_directory');
+        $currentUser = $this->getUser();
 
         $postData = [];
         foreach ($likedPosts as $interaction) {
             $post = $interaction->getPost();
             $postUser = $post->getUser();
             $avatarUrl = $postUser->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $postUser->getAvatar() : null;
+            $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
 
-            $postData[] = [
+            $postDetails = [
                 'id' => $post->getId(),
                 'content' => $post->getContent(),
                 'created_at' => $post->getCreatedAt(),
                 'username' => $postUser->getUsername(),
-                'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+                'avatar' => $avatarUrl,
+                'user_id' => $postUser->getId(),
                 'likes' => $post->getLikesCount(),
+                'userLiked' => $isLiked,
+                'isBlocked' => $postUser->getIsBlocked(),
             ];
+
+            if ($postUser->getIsBlocked()) {
+                $postDetails['content'] = 'This account has been blocked for violating the terms of use.';
+                $postDetails['likes'] = 0;
+                $postDetails['userLiked'] = false;
+            }
+
+            $postData[] = $postDetails;
         }
 
         return new JsonResponse($postData, JsonResponse::HTTP_OK);

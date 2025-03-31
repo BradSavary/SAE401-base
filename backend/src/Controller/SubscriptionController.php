@@ -86,8 +86,8 @@ class SubscriptionController extends AbstractController
         int $id,
         SubscriptionRepository $subscriptionRepo,
         PostRepository $postRepo,
-        UserRepository $userRepo): JsonResponse
-    {
+        UserRepository $userRepo
+    ): JsonResponse {
         // Vérifiez si l'utilisateur existe
         $user = $userRepo->find($id);
     
@@ -134,21 +134,31 @@ class SubscriptionController extends AbstractController
     
         $posts = [];
         foreach ($paginator as $post) {
-            $user = $post->getUser();
-            $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+            $postUser = $post->getUser();
+            $avatarUrl = $postUser->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $postUser->getAvatar() : null;
     
             $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
     
-            $posts[] = [
+            $postData = [
                 'id' => $post->getId(),
                 'content' => $post->getContent(),
                 'created_at' => $post->getCreatedAt()->format(\DateTime::ATOM), // Format ISO 8601
-                'username' => $user->getUsername(),
+                'username' => $postUser->getUsername(),
                 'avatar' => $avatarUrl,
-                'user_id' => $user->getId(),
+                'user_id' => $postUser->getId(),
                 'likes' => $post->getLikesCount(),
                 'userLiked' => $isLiked,
+                'isBlocked' => $postUser->getIsBlocked(), // Ajout de l'état de blocage
             ];
+    
+            // Si l'utilisateur est bloqué, modifiez les données du post
+            if ($postUser->getIsBlocked()) {
+                $postData['content'] = 'This account has been blocked for violating the terms of use.';
+                $postData['likes'] = 0;
+                $postData['userLiked'] = false;
+            }
+    
+            $posts[] = $postData;
         }
     
         return $this->json([

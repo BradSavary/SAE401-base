@@ -68,6 +68,9 @@ private Collection $subscribers;
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $link = null;
 
+    #[ORM\Column(type: 'boolean')]
+    private bool $isBlocked = false;
+
     public function getConfirmationCode(): ?int
     {
         return $this->confirmationCode;
@@ -295,6 +298,17 @@ private Collection $subscribers;
     {
         $this->link = $link;
 
+        return $this;
+    }
+
+    public function getIsBlocked(): ?bool
+    {
+        return $this->isBlocked;
+    }
+    
+    public function setIsBlocked(bool $isBlocked): static
+    {
+        $this->isBlocked = $isBlocked;
         return $this;
     }
 }

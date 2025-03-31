@@ -25,9 +25,9 @@ class Post
     #[ORM\Column(type: 'datetime')]
     private \DateTimeInterface $created_at;
 
-    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'posts')]
     #[ORM\JoinColumn(nullable: false)]
-    private User $user;
+    private ?User $user = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false, name: 'author_id', referencedColumnName: 'id')]

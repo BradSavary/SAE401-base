@@ -36,6 +36,7 @@ interface PostData {
     avatar: string | null;
     user_id: number; // Added user_id property
     userLiked?: boolean; // Optional property to indicate if the user liked the post
+    isBlocked?: boolean; // Optional property to indicate if the post is blocked
 }
 
 const defaultAvatar = '../../public/default-avata.webp';
@@ -86,7 +87,6 @@ const [following, setFollowing] = useState<number>(0);
     }, [activeTab, user_id]);
 
     useEffect(() => {
-        // Charger les posts de l'utilisateur lorsque l'onglet "Your posts" est actif
         async function fetchUserPosts() {
             if (activeTab === 'posts' && user_id) {
                 setLoadingPosts(true);
@@ -95,9 +95,10 @@ const [following, setFollowing] = useState<number>(0);
                     const data = await response.json();
                     const updatedPosts = data.map((post: PostData) => ({
                         ...post,
-                        userLiked: post.userLiked || false, // Ajoute la propriété userLiked
+                        userLiked: post.userLiked || false,
+                        isBlocked: post.isBlocked, // Ajout de l'état de blocage
                     }));
-                    setPosts(updatedPosts); // Mettre à jour les posts
+                    setPosts(updatedPosts);
                 } catch (error) {
                     console.error('Error fetching user posts:', error);
                 } finally {
@@ -130,9 +131,8 @@ const [following, setFollowing] = useState<number>(0);
     useEffect(() => {
         async function fetchSubscriptionCounts() {
           if (!user) return;
-      
           try {
-            const response = await apiRequest(`/subscriptions/count/${user.user_id}`);
+            const response = await apiRequest(`/subscriptions/count/${user_id}`);
             const data = await response.json();
             setFollowers(data.followers);
             setFollowing(data.following);
@@ -213,8 +213,9 @@ const [following, setFollowing] = useState<number>(0);
                                     avatar={post.avatar ?? undefined}
                                     user_id={post.user_id}
                                     post_id={post.id}
+                                    userLiked={post.userLiked ?? false}
+                                    isBlocked={post.isBlocked ?? false} // Passe l'état de blocage
                                     onDelete={handleDeletePost}
-                                    userLiked={post.userLiked ?? false} // Passe l'état du like
                                 />
                             ))
                         )}
@@ -235,6 +236,7 @@ const [following, setFollowing] = useState<number>(0);
                                     user_id={post.user_id}
                                     post_id={post.id}
                                     userLiked={true} // Les posts dans cet onglet sont forcément likés
+                                    isBlocked={post.isBlocked ?? false} 
                                     onDelete={handleDeletePost}
                                 />
                             ))

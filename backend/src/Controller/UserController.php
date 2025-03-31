@@ -148,6 +148,10 @@ public function login(Request $request, UserPasswordHasherInterface $passwordHas
     $data = json_decode($request->getContent(), true);
     $user = $entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
 
+    if ($user->getIsBlocked()) {
+        return new Response('This account has been blocked', Response::HTTP_FORBIDDEN);
+    }
+
     if (!$user || !$passwordHasher->isPasswordValid($user, $data['password'])) {
         return new Response('Invalid credentials', Response::HTTP_UNAUTHORIZED);
     }
@@ -235,6 +239,7 @@ public function getUsers(EntityManagerInterface $entityManager): JsonResponse
             'username' => $user->getUsername(),
             'email' => $user->getEmail(),
             'avatar' => $avatarUrl, // Ajout de l'URL de l'avatar
+            'is_blocked' => $user->getIsBlocked(),
         ];
     }
 
@@ -402,6 +407,39 @@ public function getUserByUsername(string $username, EntityManagerInterface $enti
         'place' => $user->getPlace(),
         'link' => $user->getLink(),
     ], Response::HTTP_OK);
+}
+
+
+#[Route('/user/block/{id}', name: 'block_user', methods: ['POST'])]
+#[IsGranted('ROLE_ADMIN')]
+public function blockUser(int $id, EntityManagerInterface $entityManager): JsonResponse
+{
+    $user = $entityManager->getRepository(User::class)->find($id);
+
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    $user->setIsBlocked(true);
+    $entityManager->flush();
+
+    return new JsonResponse(['message' => 'User has been blocked'], JsonResponse::HTTP_OK);
+}
+
+#[Route('/user/unblock/{id}', name: 'unblock_user', methods: ['POST'])]
+#[IsGranted('ROLE_ADMIN')]
+public function unblockUser(int $id, EntityManagerInterface $entityManager): JsonResponse
+{
+    $user = $entityManager->getRepository(User::class)->find($id);
+
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    $user->setIsBlocked(false);
+    $entityManager->flush();
+
+    return new JsonResponse(['message' => 'User has been unblocked'], JsonResponse::HTTP_OK);
 }
 
 };

@@ -15,6 +15,7 @@ interface PostData {
   avatar: string | null;
   user_id: number;
   userLiked: boolean;
+  isBlocked: boolean; // Added property to fix the error
 }
 
 function Feed(): JSX.Element {
@@ -44,7 +45,7 @@ function Feed(): JSX.Element {
 
   const loadPosts = async (currentPage: number) => {
     if (isFetching) return; // Empêche les appels multiples
-    setIsFetching(true);
+    setIsFetching(true); // Active le verrou
   
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -107,28 +108,30 @@ function Feed(): JSX.Element {
     fetchPostsForActiveTab();
   }, [activeTab]);
   
-useEffect(() => {
-  if (observer.current) observer.current.disconnect();
-
-  observer.current = new IntersectionObserver(entries => {
-    if (entries[0].isIntersecting && hasMore && !loading) {
-      setPage(prevPage => prevPage + 1);
-    }
-  });
-
-  if (lastPostRef.current) {
-    observer.current.observe(lastPostRef.current);
-  }
-
-  return () => {
+  useEffect(() => {
     if (observer.current) observer.current.disconnect();
-  };
-}, [hasMore, loading]);
-
-useEffect(() => {
-  if (page === 1 && posts.length === 0) return; // Évite de recharger les posts déjà chargés
-  loadPosts(page);
-}, [page]);
+  
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loading && !isFetching) {
+        setPage(prevPage => prevPage + 1); // Incrémente la page uniquement si toutes les conditions sont remplies
+      }
+    });
+  
+    if (lastPostRef.current) {
+      observer.current.observe(lastPostRef.current);
+    }
+  
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, [hasMore, loading, isFetching]);
+  
+  useEffect(() => {
+    if (page === 1 && posts.length === 0) return; // Évite de recharger les posts déjà chargés
+    if (!isFetching) {
+      loadPosts(page); // Charge les posts pour la page actuelle
+    }
+  }, [page]);
 
   if (error) {
     return <div>{error}</div>;
@@ -163,16 +166,17 @@ useEffect(() => {
       <div className="overflow-y-auto flex-1 scrollbar-thin">
         {posts.map(post => (
           <Post
-            key={post.id}
-            username={post.username}
-            content={post.content}
-            date={timeAgo(new Date(post.created_at.date))} // Utilisation correcte de la date
-            avatar={post.avatar ?? undefined}
-            user_id={post.user_id}
-            post_id={post.id}
-            onDelete={handleDeletePost}
-            userLiked={post.userLiked}
-          />
+          key={post.id}
+          username={post.username}
+          content={post.content}
+          date={timeAgo(new Date(post.created_at.date))} // Utilisation correcte de la date
+          avatar={post.avatar ?? undefined}
+          user_id={post.user_id}
+          post_id={post.id}
+          onDelete={handleDeletePost}
+          userLiked={post.userLiked}
+          isBlocked={post.isBlocked} // Passe l'état de blocage
+        />
         ))}
         {loading && <PostSkeleton />}
         <div ref={lastPostRef} className="h-1" />

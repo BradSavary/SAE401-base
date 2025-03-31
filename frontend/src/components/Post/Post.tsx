@@ -14,13 +14,14 @@ interface PostProps {
   post_id: number;
   onDelete: (postId: number) => void;
   userLiked: boolean;
+  isBlocked: boolean; // Nouvelle propriété
 }
 
-function Post({ username, content, date, avatar, user_id, post_id, onDelete, userLiked }: PostProps): JSX.Element {
+function Post({ username, content, date, avatar, user_id, post_id, onDelete, userLiked, isBlocked }: PostProps): JSX.Element {
   const [showPopup, setShowPopup] = useState(false);
   const [liked, setLiked] = useState(userLiked);
   const [likeCount, setLikeCount] = useState(0);
-  const [showConfirm, setShowConfirm] = useState(false); // État pour afficher la confirmation
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const connectedUserId = Number(localStorage.getItem('user_id'));
 
@@ -35,30 +36,14 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
       }
     };
 
-    fetchLikes();
-  }, [post_id]);
-
-  const togglePopup = () => {
-    setShowPopup(!showPopup);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      const response = await apiRequest(`/posts/${post_id}`, { method: 'DELETE' });
-
-      if (response.ok) {
-        onDelete(post_id);
-      } else {
-        console.error('Failed to delete post');
-      }
-    } catch (error) {
-      console.error('Error deleting post:', error);
-    } finally {
-      setShowConfirm(false); // Fermer la confirmation après suppression
+    if (!isBlocked) {
+      fetchLikes(); // Ne récupère les likes que si l'utilisateur n'est pas bloqué
     }
-  };
+  }, [post_id, isBlocked]);
 
   const handleLike = async () => {
+    if (isBlocked) return; // Empêche l'interaction si l'utilisateur est bloqué
+
     try {
       const response = await apiRequest(`/post/like/${post_id}`, {
         method: liked ? 'DELETE' : 'POST',
@@ -77,22 +62,22 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
   };
 
   return (
-    <div className='flex flex-row w-full'>
-       <Link to={`/profile/${username}`}>
-      <img 
-        src={avatar ? `${avatar}` : "../../../public/default-avata.webp"} 
-        className='rounded-full max-w-8 max-h-8 mt-4 ml-2 aspect-square' 
-        alt="Post image" 
-      />
+    <div className="flex flex-row w-full">
+      <Link to={`/profile/${username}`}>
+        <img
+          src={avatar ? `${avatar}` : "../../../public/default-avata.webp"}
+          className="rounded-full max-w-8 max-h-8 mt-4 ml-2 aspect-square"
+          alt="Post image"
+        />
       </Link>
       <div className="p-4 border-b border-custom-gray w-full">
         <div className="flex items-center justify-between mb-2">
-        <Link to={`/profile/${username}`}>
-          <span className="font-bold mr-2 text-custom">{username}</span>
+          <Link to={`/profile/${username}`}>
+            <span className="font-bold mr-2 text-custom">{username}</span>
           </Link>
-          <div className='flex items-center gap-2 relative'>
+          <div className="flex items-center gap-2 relative">
             <span className="text-custom-light-gray text-sm">{date}</span>
-            <DotsIcon className="w-4 h-4 cursor-pointer" alt="3 dots" onClick={togglePopup} />
+            <DotsIcon className="w-4 h-4 cursor-pointer" alt="3 dots" onClick={() => setShowPopup(!showPopup)} />
             {showPopup && (
               <div className="absolute top-8 right-0 bg-white shadow-md rounded-md p-2 z-10">
                 {connectedUserId === user_id ? (
@@ -102,7 +87,7 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
                     </button>
                     <button
                       className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                      onClick={() => setShowConfirm(true)} // Afficher la confirmation
+                      onClick={() => setShowConfirm(true)}
                     >
                       Delete
                     </button>
@@ -116,43 +101,28 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
             )}
           </div>
         </div>
-        <div className="text-gray-800 text-custom-light-gray max-w-full">
+        <div
+          className={`text-gray-800 max-w-full ${
+            content === 'This account has been blocked for violating the terms of use.'
+              ? 'text-custom-red'
+              : 'text-custom-light-gray'
+          }`}
+        >
           {content}
         </div>
-        <div className="flex items-center mt-2">
-          <button onClick={handleLike} className="flex items-center gap-1 cursor-pointer">
-            {liked ? (
-              <LikeSIcon className="w-6 h-6 text-red-500" alt="Liked" />
-            ) : (
-              <LikeIcon className="w-5 h-5 text-gray-500" alt="Like" />
-            )}
-            <span className="text-sm text-gray-700">{likeCount}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Modal de confirmation */}
-      {showConfirm && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-20">
-          <div className="bg-white p-6 rounded shadow-lg">
-            <p className="text-lg mb-4">Are you sure you want to delete this post?</p>
-            <div className="flex justify-end gap-4">
-              <button
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                onClick={() => setShowConfirm(false)} // Annuler
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                onClick={confirmDelete} // Confirmer la suppression
-              >
-                Delete
-              </button>
-            </div>
+        {!isBlocked && ( // N'affiche les likes que si l'utilisateur n'est pas bloqué
+          <div className="flex items-center mt-2">
+            <button onClick={handleLike} className="flex items-center gap-1 cursor-pointer">
+              {liked ? (
+                <LikeSIcon className="w-6 h-6 text-red-500" alt="Liked" />
+              ) : (
+                <LikeIcon className="w-5 h-5 text-gray-500" alt="Like" />
+              )}
+              <span className="text-sm text-gray-700">{likeCount}</span>
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

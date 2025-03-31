@@ -7,6 +7,7 @@
     --clr-gray:#878787;
     --clr-blue: #0070F9;
     --clr-light-gray: #cecece;
+    --clr-red: #E22517;
 
     --custom-bg-color: var(--clr-dark);
     --custom-text-color: var(--clr-light);
@@ -86,5 +87,13 @@
 
   .w-half{
     width: 50%;
+  }
+
+  .bg-custom-red {
+    background-color: var(--clr-red);
+  }
+
+  .text-custom-red {
+    color: var(--clr-red);
   }
 }

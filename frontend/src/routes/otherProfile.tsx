@@ -32,6 +32,7 @@ interface PostData {
   avatar: string | null;
   user_id: number;
   userLiked?: boolean;
+  isBlocked: boolean;
 }
 
 const defaultAvatar = '../../public/default-avata.webp';
@@ -48,30 +49,29 @@ export default function OtherProfile() {
 const [following, setFollowing] = useState<number>(0);
 
 
-  useEffect(() => {
-    async function fetchUserProfile() {
+useEffect(() => {
+  async function fetchUserProfile() {
       try {
-        const response = await apiRequest(`/user/username/${userName}`);
-        const userData = await response.json();
-        setUser(userData);
+          const response = await apiRequest(`/user/username/${userName}`);
+          const userData = await response.json();
+          setUser(userData);
 
-        const postsResponse = await apiRequest(`/posts/user/${userData.user_id}`);
-        const postsData = await postsResponse.json();
-        setPosts(postsData);
-
-        // Vérifier si l'utilisateur actuel est abonné
-        const subscriptionResponse = await apiRequest(`/subscriptions/check/${userData.user_id}`);
-        const subscriptionData = await subscriptionResponse.json();
-        setIsSubscribed(subscriptionData.isSubscribed);
+          const postsResponse = await apiRequest(`/posts/user/${userData.user_id}`);
+          const postsData = await postsResponse.json();
+          const updatedPosts = postsData.map((post: PostData) => ({
+              ...post,
+              isBlocked: post.isBlocked, // Ajout de l'état de blocage
+          }));
+          setPosts(updatedPosts);
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+          console.error('Error fetching user profile:', error);
       } finally {
-        setLoading(false);
+          setLoading(false);
       }
-    }
+  }
 
-    fetchUserProfile();
-  }, [userName]);
+  fetchUserProfile();
+}, [userName]);
 
   const handleSubscribe = async () => {
     if (!user) return;
@@ -196,6 +196,7 @@ const [following, setFollowing] = useState<number>(0);
                 post_id={post.id}
                 userLiked={post.userLiked ?? false}
                 onDelete={() => {}} // Pas de suppression ici
+                isBlocked={post.isBlocked} // Passe l'état de blocage
               />
             ))}
           </div>

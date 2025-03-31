@@ -13,6 +13,7 @@ interface User {
     email: string;
     is_verified: boolean;
     avatar: string | null; // Add the avatar property to match the Profile User interface
+    is_blocked: boolean; // Add the is_blocked property to match the Profile User interface
 }
 
 function Admin(): JSX.Element {

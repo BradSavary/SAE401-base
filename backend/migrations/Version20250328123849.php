@@ -12,22 +12,32 @@ use Doctrine\Migrations\AbstractMigration;
  */
 final class Version20250328123849 extends AbstractMigration
 {
-    public function getDescription(): string
-    {
-        return '';
-    }
-
     public function up(Schema $schema): void
-    {
-        // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE post ADD CONSTRAINT FK_5A8A6C8DF675F31B FOREIGN KEY (author_id) REFERENCES user (id)');
-        $this->addSql('CREATE INDEX IDX_5A8A6C8DF675F31B ON post (author_id)');
-    }
+{
+    // Check if the foreign key constraint already exists
+    $this->addSql("
+        SET @constraint_exists = (
+            SELECT COUNT(*)
+            FROM information_schema.table_constraints
+            WHERE constraint_name = 'FK_5A8A6C8DF675F31B'
+              AND table_name = 'post'
+        );
+        IF @constraint_exists = 0 THEN
+            ALTER TABLE post ADD CONSTRAINT FK_5A8A6C8DF675F31B FOREIGN KEY (author_id) REFERENCES user (id);
+        END IF;
+    ");
 
-    public function down(Schema $schema): void
-    {
-        // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE post DROP FOREIGN KEY FK_5A8A6C8DF675F31B');
-        $this->addSql('DROP INDEX IDX_5A8A6C8DF675F31B ON post');
-    }
+    // Check if the index already exists before creating it
+    $this->addSql("
+        SET @index_exists = (
+            SELECT COUNT(*)
+            FROM information_schema.statistics
+            WHERE index_name = 'IDX_5A8A6C8DF675F31B'
+              AND table_name = 'post'
+        );
+        IF @index_exists = 0 THEN
+            CREATE INDEX IDX_5A8A6C8DF675F31B ON post (author_id);
+        END IF;
+    ");
+}
 }
