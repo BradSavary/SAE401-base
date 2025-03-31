@@ -27,7 +27,7 @@ const RefreshButton = ({ onRefresh }: RefreshButtonProps) => {
                 className="flex  bg-custom-blue text-white px-4 py-2 rounded-full shadow-md hover:bg-custom-dark-blue cursor-pointer"
             >
                 <RefreshIcon size='xsmall'/>
-                Rafraîchir
+                Refresh
             </button>
         </div>
     );

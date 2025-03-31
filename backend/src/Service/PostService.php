@@ -19,19 +19,20 @@ class PostService
     }
 
     public function create(CreatePostPayload $payload): void
-    {
-        $user = $this->userRepository->find($payload->getUserId());
-        if (!$user) {
-            throw new \Exception('User not found');
-        }
-
-        $post = new Post();
-        $post->setContent($payload->getContent());
-        $post->setUser($user);
-        $post->setCreatedAt(new \DateTimeImmutable());
-
-        $this->entityManager->persist($post);
-        $this->entityManager->flush();
+{
+    $user = $this->userRepository->find($payload->getUserId());
+    if (!$user) {
+        throw new \Exception('User not found');
     }
+
+    $post = new Post();
+    $post->setContent($payload->getContent());
+    $post->setUser($user);
+    $post->setAuthor($user); // Définir l'auteur ici
+    $post->setCreatedAt(new \DateTimeImmutable());
+
+    $this->entityManager->persist($post);
+    $this->entityManager->flush();
+}
     
 }

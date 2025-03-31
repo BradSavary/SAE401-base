@@ -3,6 +3,7 @@ import { DotsIcon } from '../../ui/Icon/3dots';
 import { apiRequest } from '../../lib/api-request';
 import { LikeIcon } from '../../ui/NavBarIcon/like';
 import { LikeIcon as LikeSIcon } from '../../ui/NavBarIcon/likeS';
+import { Link } from 'react-router-dom';
 
 interface PostProps {
   username: string;
@@ -77,14 +78,18 @@ function Post({ username, content, date, avatar, user_id, post_id, onDelete, use
 
   return (
     <div className='flex flex-row w-full'>
+       <Link to={`/profile/${username}`}>
       <img 
         src={avatar ? `${avatar}` : "../../../public/default-avata.webp"} 
         className='rounded-full max-w-8 max-h-8 mt-4 ml-2 aspect-square' 
         alt="Post image" 
       />
+      </Link>
       <div className="p-4 border-b border-custom-gray w-full">
         <div className="flex items-center justify-between mb-2">
+        <Link to={`/profile/${username}`}>
           <span className="font-bold mr-2 text-custom">{username}</span>
+          </Link>
           <div className='flex items-center gap-2 relative'>
             <span className="text-custom-light-gray text-sm">{date}</span>
             <DotsIcon className="w-4 h-4 cursor-pointer" alt="3 dots" onClick={togglePopup} />

@@ -29,6 +29,22 @@ class Post
     #[ORM\JoinColumn(nullable: false)]
     private User $user;
 
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: false, name: 'author_id', referencedColumnName: 'id')]
+    private $author;
+
+    public function getAuthor(): ?User
+    {
+        return $this->author;
+    }
+
+    public function setAuthor(User $author): self
+    {
+        $this->author = $author;
+
+        return $this;
+    }
+
     public function __construct()
     {
         $this->interactions = new ArrayCollection();

@@ -11,6 +11,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use \DateTime;
+use Symfony\Component\HttpFoundation\Request;
 
 class SubscriptionController extends AbstractController
 {
@@ -80,48 +82,114 @@ class SubscriptionController extends AbstractController
     }
 
     #[Route('/subscriptions/posts/{id}', name: 'subscriptions_posts', methods: ['GET'])]
-public function getSubscriptionsPosts(
-    User $user,
-    SubscriptionRepository $subscriptionRepo,
-    PostRepository $postRepo
-): JsonResponse {
-    $subscriptions = $subscriptionRepo->findBy(['subscriber' => $user]);
-
-    if (!$subscriptions) {
-        return new JsonResponse(['error' => 'No subscriptions found'], 404);
-    }
-
-    $subscribedUserIds = array_map(fn($sub) => $sub->getSubscribedTo()->getId(), $subscriptions);
-
-    $posts = $postRepo->findBy(['user' => $subscribedUserIds], ['created_at' => 'DESC']);
-
-    // Récupérer les paramètres pour construire les URLs des avatars
-    $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
-    $uploadDir = $this->getParameter('upload_directory');
-
-    $currentUser = $this->getUser();
-
-    // Transform posts into an array to avoid circular references
-    $postData = array_map(function ($post) use ($baseUrl, $uploadDir, $currentUser) {
-        $user = $post->getUser();
-        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
-
-        $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
-
-        return [
-            'id' => $post->getId(),
-            'content' => $post->getContent(),
-            'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
-            'user' => [
-                'id' => $user->getId(),
+    public function getSubscriptionsPosts(
+        int $id,
+        SubscriptionRepository $subscriptionRepo,
+        PostRepository $postRepo,
+        UserRepository $userRepo): JsonResponse
+    {
+        // Vérifiez si l'utilisateur existe
+        $user = $userRepo->find($id);
+    
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not found'], 404);
+        }
+    
+        // Récupérez les abonnements de l'utilisateur
+        $subscriptions = $subscriptionRepo->findBy(['subscriber' => $user]);
+    
+        if (!$subscriptions) {
+            return new JsonResponse(['error' => 'No subscriptions found'], 404);
+        }
+    
+        // Récupérez les IDs des utilisateurs abonnés
+        $subscribedUserIds = array_map(fn($sub) => $sub->getSubscribedTo()->getId(), $subscriptions);
+    
+        // Pagination
+        $request = Request::createFromGlobals();
+        $page = (int) $request->query->get('page', 1);
+        $limit = 15;
+        $offset = ($page - 1) * $limit;
+    
+        // Récupérez les posts des abonnements
+        $paginator = $postRepo->createQueryBuilder('p')
+            ->where('p.user IN (:subscribedUserIds)')
+            ->setParameter('subscribedUserIds', $subscribedUserIds)
+            ->orderBy('p.created_at', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    
+        $totalPostsCount = count($postRepo->findBy(['user' => $subscribedUserIds]));
+    
+        $previousPage = $page > 1 ? $page - 1 : null;
+        $nextPage = ($offset + $limit) < $totalPostsCount ? $page + 1 : null;
+    
+        // Récupérer les paramètres pour construire les URLs des avatars
+        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+        $uploadDir = $this->getParameter('upload_directory');
+    
+        $currentUser = $this->getUser();
+    
+        $posts = [];
+        foreach ($paginator as $post) {
+            $user = $post->getUser();
+            $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+    
+            $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
+    
+            $posts[] = [
+                'id' => $post->getId(),
+                'content' => $post->getContent(),
+                'created_at' => $post->getCreatedAt()->format(\DateTime::ATOM), // Format ISO 8601
                 'username' => $user->getUsername(),
                 'avatar' => $avatarUrl,
-            ],
-            'likes' => $post->getLikesCount(),
-            'userLiked' => $isLiked,
-        ];
-    }, $posts);
+                'user_id' => $user->getId(),
+                'likes' => $post->getLikesCount(),
+                'userLiked' => $isLiked,
+            ];
+        }
+    
+        return $this->json([
+            'posts' => $posts,
+            'previous_page' => $previousPage,
+            'next_page' => $nextPage,
+        ]);
+    }
 
-    return new JsonResponse($postData);
+    #[Route('/subscriptions/check/{id}', name: 'check_subscription', methods: ['GET'])]
+public function checkSubscription(int $id, SubscriptionRepository $subscriptionRepo): JsonResponse
+{
+    $currentUser = $this->getUser();
+
+    if (!$currentUser) {
+        return new JsonResponse(['error' => 'Unauthorized'], 401);
+    }
+
+    $subscription = $subscriptionRepo->findOneBy([
+        'subscriber' => $currentUser,
+        'subscribedTo' => $id,
+    ]);
+
+    return new JsonResponse(['isSubscribed' => $subscription !== null]);
+}
+
+#[Route('/subscriptions/count/{id}', name: 'subscriptions_count', methods: ['GET'])]
+public function getSubscriptionsCount(int $id, SubscriptionRepository $subscriptionRepo, UserRepository $userRepo): JsonResponse
+{
+    $user = $userRepo->find($id);
+
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], 404);
+    }
+
+    $followersCount = $subscriptionRepo->count(['subscribedTo' => $user]);
+    $followingCount = $subscriptionRepo->count(['subscriber' => $user]);
+
+    return new JsonResponse([
+        'followers' => $followersCount,
+        'following' => $followingCount,
+    ]);
 }
 }

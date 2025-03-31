@@ -376,4 +376,32 @@ public function updateProfile(
     return new JsonResponse(['status' => 'Profile updated successfully'], Response::HTTP_OK);
 }
 
+#[Route('/user/username/{username}', name: 'get_user_by_username', methods: ['GET'])]
+public function getUserByUsername(string $username, EntityManagerInterface $entityManager): JsonResponse
+{
+    $user = $entityManager->getRepository(User::class)->findOneBy(['username' => $username]);
+
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
+    }
+
+    // Construire les URLs absolues pour l'avatar et la bannière
+    $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+    $uploadDir = $this->getParameter('upload_directory');
+
+    $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
+    $bannerUrl = $user->getBanner() ? $baseUrl . '/' . $uploadDir . '/' . $user->getBanner() : null;
+
+    return new JsonResponse([
+        'user_id' => $user->getId(),
+        'username' => $user->getUsername(),
+        'email' => $user->getEmail(),
+        'avatar' => $avatarUrl,
+        'banner' => $bannerUrl,
+        'bio' => $user->getBio(),
+        'place' => $user->getPlace(),
+        'link' => $user->getLink(),
+    ], Response::HTTP_OK);
+}
+
 };

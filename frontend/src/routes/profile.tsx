@@ -50,6 +50,9 @@ export default function Profile() {
     const handleDeletePost = (postId: number) => {
         setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
     };
+    const [followers, setFollowers] = useState<number>(0);
+const [following, setFollowing] = useState<number>(0);
+
 
     useEffect(() => {
         async function fetchUserProfile() {
@@ -124,13 +127,40 @@ export default function Profile() {
         fetchLikedPosts();
     }, [activeTab, user_id]);
 
+    useEffect(() => {
+        async function fetchSubscriptionCounts() {
+          if (!user) return;
+      
+          try {
+            const response = await apiRequest(`/subscriptions/count/${user.user_id}`);
+            const data = await response.json();
+            setFollowers(data.followers);
+            setFollowing(data.following);
+          } catch (error) {
+            console.error('Error fetching subscription counts:', error);
+          }
+        }
+      
+        fetchSubscriptionCounts();
+      }, [user]);
+
     if (!user) {
         return <Skeleton />;
     }
 
     return (
         <div className="flex flex-col text-custom bg-custom">
-            <Banner banner={user.banner || defaultBanner} className="w-full overflow-hidden max-h-35 aspect-custom-banner" />
+            <Banner banner={user.banner || defaultBanner} className="w-full overflow-hidden max-h-35" />
+            <div className="flex flex-row justify-around text-center text-custom-light-gray pt-5">
+  <div className="flex flex-col items-center">
+    <p className="font-bold text-xl text-custom-dark-gray">{followers}</p>
+    <p className="text-sm text-custom-light-gray">Followers</p>
+  </div>
+  <div className="flex flex-col items-center">
+    <p className="font-bold text-xl text-custom-dark-gray">{following}</p>
+    <p className="text-sm text-custom-light-gray">Following</p>
+  </div>
+</div>
             <div className='flex flex-row-reverse p-4 items-start'>
                 <div className='h-full flex flex-col items-end justify-between gap-5'>
                     <Avatar avatar={user.avatar || defaultAvatar} className="w-20 aspect-square rounded-full overflow-hidden" />
