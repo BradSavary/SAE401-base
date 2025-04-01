@@ -78,9 +78,9 @@ export function Write() {
                 {mediaPreview && (
             <div className="mt-4">
                 {media?.type.startsWith('image') ? (
-                    <img src={mediaPreview} alt="Preview" className="max-w-full h-auto rounded-md" />
+                    <img src={mediaPreview} alt="Preview" className="w-28 h-28 rounded-md" />
                 ) : media?.type.startsWith('video') ? (
-                    <video controls className="max-w-full h-auto rounded-md">
+                    <video controls className="w-14 h-28 rounded-md">
                         <source src={mediaPreview} type={media?.type} />
                         Your browser does not support the video tag.
                     </video>
@@ -92,6 +92,7 @@ export function Write() {
                 ) : null}
             </div>
         )}
+                <div className="flex gap-4 justify-center items-center absolute bottom-0 right-0 mr-6 mb-22">
                 <div>
                     <input
                         type="file"
@@ -100,7 +101,6 @@ export function Write() {
                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
                 </div>
-                <div className="flex gap-4 justify-center items-center absolute bottom-0 right-0 mr-6 mb-22">
                     <div className={` ${charCount === 280 ? 'text-red-500' : 'text-gray-500'}`}>{charCount}/280</div>
                     <Button variant="tertiary" onClick={handlePublish}>Publier</Button>
                 </div>
