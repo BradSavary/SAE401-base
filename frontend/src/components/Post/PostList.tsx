@@ -11,6 +11,7 @@ interface PostData {
     user_id: number;
     userLiked: boolean;
     isBlocked: boolean;
+    media: string | null; // URL du média associé au post
 }
 
 interface PostListProps {
@@ -115,6 +116,7 @@ function PostList({ endpoint, className }: PostListProps) {
                     userLiked={post.userLiked}
                     isBlocked={post.isBlocked}
                     onDelete={(postId) => setPosts((prevPosts) => prevPosts.filter((p) => p.id !== postId))}
+                    media={post.media} // Passer le média au composant Post
                 />
             ))}
             {loading && <div className="text-custom text-center mt-4">Loading...</div>}

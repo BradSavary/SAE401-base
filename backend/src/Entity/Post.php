@@ -33,6 +33,9 @@ class Post
     #[ORM\JoinColumn(nullable: false, name: 'author_id', referencedColumnName: 'id')]
     private $author;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $media = null;
+
     public function getAuthor(): ?User
     {
         return $this->author;
@@ -149,6 +152,18 @@ class Post
     }
     return $count;
 }
+
+    public function getMedia(): ?string
+    {
+        return $this->media;
+    }
+
+    public function setMedia(?string $media): static
+    {
+        $this->media = $media;
+
+        return $this;
+    }
 
 
 }

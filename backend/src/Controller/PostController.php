@@ -18,6 +18,7 @@ use App\Repository\PostInteractionRepository;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use App\Entity\User;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class PostController extends AbstractController
 {
@@ -53,32 +54,39 @@ final class PostController extends AbstractController
         ]);
     }
 
-#[Route('/posts', name: 'posts.create', methods: ['POST'])]
-public function create(
-    Request $request,
-    SerializerInterface $serializer,
-    ValidatorInterface $validator,
-    PostService $postService, 
-    EntityManagerInterface $entityManager
-): Response {
-    $currentUser = $this->getUser();
-
-if ($currentUser->getIsBlocked()) {
-    return new JsonResponse(['error' => 'Your account has been blocked. You cannot create posts.'], Response::HTTP_FORBIDDEN);
-}
-
-    $payload = $serializer->deserialize($request->getContent(), CreatePostPayload::class, 'json');
-
-    $errors = $validator->validate($payload);
-    if (count($errors) > 0) {
-        return $this->json($errors, Response::HTTP_BAD_REQUEST);
+    #[Route('/posts', name: 'posts.create', methods: ['POST'])]
+    public function create(
+        Request $request,
+        SerializerInterface $serializer,
+        ValidatorInterface $validator,
+        PostService $postService, 
+        EntityManagerInterface $entityManager
+    ): Response {
+        $currentUser = $this->getUser();
+    
+        if ($currentUser->getIsBlocked()) {
+            return new JsonResponse(['error' => 'Your account has been blocked. You cannot create posts.'], Response::HTTP_FORBIDDEN);
+        }
+    
+        $payload = new CreatePostPayload();
+        $payload->setContent($request->request->get('content'));
+        $payload->setUserId($currentUser->getId());
+    
+        // Gestion du fichier média
+        $media = $request->files->get('media');
+        if ($media instanceof UploadedFile) {
+            $payload->setMedia($media);
+        }
+    
+        $errors = $validator->validate($payload);
+        if (count($errors) > 0) {
+            return $this->json($errors, Response::HTTP_BAD_REQUEST);
+        }
+    
+        $postService->create($payload);
+    
+        return new JsonResponse(['status' => 'Post created'], Response::HTTP_CREATED);
     }
-
-    // Appel au service PostService pour créer le post
-    $postService->create($payload);
-
-    return new JsonResponse(['status' => 'Post created'], Response::HTTP_CREATED);
-}
 
 #[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]
 public function getUserPosts(
@@ -116,34 +124,36 @@ public function getUserPosts(
 }
 
 
-    #[Route('/posts/{id}', name: 'posts.delete', methods: ['DELETE'])]
-    #[IsGranted("ROLE_USER")]
-    public function delete(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
-    {
-        $post = $postRepository->find($id);
+#[Route('/posts/{id}', name: 'posts.delete', methods: ['DELETE'])]
+#[IsGranted("ROLE_USER")]
+public function delete(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
+{
+    $post = $postRepository->find($id);
 
-        if (!$post) {
-            return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
-        }
+    if (!$post) {
+        return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
+    }
 
-        $currentUser = $this->getUser();
+    $currentUser = $this->getUser();
 
-        if ($this->isGranted('ROLE_ADMIN')) {
-            $entityManager->remove($post);
-            $entityManager->flush();
-
-            return new JsonResponse(["error"=>"Post deleted", 'status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
-        }
-
-        if ($post->getUser() !== $currentUser) {
-            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+    if ($this->isGranted('ROLE_ADMIN') || $post->getUser() === $currentUser) {
+        // Supprimer le fichier média associé au post
+        $mediaPath = $post->getMedia();
+        if ($mediaPath) {
+            $fullPath = $this->getParameter('kernel.project_dir') . '/public/uploads/media/' . $mediaPath;
+            if (file_exists($fullPath)) {
+                unlink($fullPath); // Supprime le fichier
+            }
         }
 
         $entityManager->remove($post);
         $entityManager->flush();
 
-        return new JsonResponse(["error"=>"Post deleted", 'status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
+        return new JsonResponse(['status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
     }
+
+    return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+}
 
     #[Route('/posts/liked/{id}', name: 'posts.liked', methods: ['GET'])]
     public function getLikedPostsByUser(

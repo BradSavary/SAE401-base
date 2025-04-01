@@ -4,6 +4,7 @@ import { DotsIcon } from '../../ui/Icon/3dots';
 import { apiRequest } from '../../lib/api-request';
 import { LikeIcon } from '../../ui/NavBarIcon/like';
 import { LikeSIcon } from '../../ui/NavBarIcon/likeS';
+import { post } from 'axios';
 
 interface PostProps {
     id: number;
@@ -15,9 +16,10 @@ interface PostProps {
     isBlocked: boolean;
     onDelete: (postId: number) => void;
     userLiked: boolean; // Indique si l'utilisateur connecté a liké ce post
+    media: string | null; // URL du média associé au post
 }
 
-const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, onDelete, userLiked }: PostProps): JSX.Element => {
+const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, onDelete, userLiked, media }: PostProps): JSX.Element => {
     const [showPopup, setShowPopup] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [liked, setLiked] = useState(userLiked); // État pour savoir si l'utilisateur a liké
@@ -122,9 +124,21 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                         </div>
                     </div>
                 </div>
-                <div className={`text-gray-800 ${isBlocked ? 'text-custom-red' : 'text-custom-light-gray'}`}>
+                <div className={`text-gray-800 break-words max-w-65  ${isBlocked ? 'text-custom-red' : 'text-custom-light-gray'}` }>
                     {content}
                 </div>
+                {media && (
+                <div className="mt-4">
+                    {media.endsWith('.jpg') || media.endsWith('.png') || media.endsWith('.jpeg') ? (
+                        <img src={media} alt="Post media" className="max-w-full h-auto rounded-md" />
+                    ) : (
+                        <video controls className="max-w-full h-auto rounded-md">
+                            <source src={media} type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
+                    )}
+                </div>
+                )}
                 {!isBlocked && ( // N'affiche les likes que si l'utilisateur n'est pas bloqué
                     <div className="mt-4 flex items-center text-custom">
                         <button onClick={handleLike} className="flex items-center gap-1 cursor-pointer">
