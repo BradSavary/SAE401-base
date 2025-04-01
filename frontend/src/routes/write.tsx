@@ -76,22 +76,32 @@ export function Write() {
                     />
                 </div>
                 {mediaPreview && (
-            <div className="mt-4">
-                {media?.type.startsWith('image') ? (
-                    <img src={mediaPreview} alt="Preview" className="w-28 h-28 rounded-md" />
-                ) : media?.type.startsWith('video') ? (
-                    <video controls className="w-14 h-28 rounded-md">
-                        <source src={mediaPreview} type={media?.type} />
-                        Your browser does not support the video tag.
-                    </video>
-                ) : media?.type === 'audio/mpeg' ? (
-                    <audio controls className="w-full">
-                        <source src={mediaPreview} type="audio/mpeg" />
-                        Your browser does not support the audio tag.
-                    </audio>
-                ) : null}
-            </div>
-        )}
+                <div className="mt-4 relative">
+                    <button
+                        onClick={() => {
+                            setMedia(null);
+                            setMediaPreview(null);
+                        }}
+                        className="absolute top-0 left-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                        aria-label="Remove media"
+                    >
+                        &times;
+                    </button>
+                    {media?.type.startsWith('image') ? (
+                        <img src={mediaPreview} alt="Preview" className="w-28 h-28 rounded-md" />
+                    ) : media?.type.startsWith('video') ? (
+                        <video controls className="w-14 h-28 rounded-md">
+                            <source src={mediaPreview} type={media?.type} />
+                            Your browser does not support the video tag.
+                        </video>
+                    ) : media?.type === 'audio/mpeg' ? (
+                        <audio controls className="w-full">
+                            <source src={mediaPreview} type="audio/mpeg" />
+                            Your browser does not support the audio tag.
+                        </audio>
+                    ) : null}
+                </div>
+            )}
                 <div className="flex gap-4 justify-center items-center absolute bottom-0 right-0 mr-6 mb-22">
                 <div>
                     <input
