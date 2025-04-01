@@ -91,7 +91,7 @@ public function unlike(int $postId, Request $request, EntityManagerInterface $en
 }
 
     #[Route('/post/like/{postId}', name: 'post_get_likes', methods: ['GET'])]
-    public function getLikes(int $postId, PostInteractionRepository $interactionRepository, EntityManagerInterface $entityManager): JsonResponse
+    public function getLikes(int $postId, Request $request, PostInteractionRepository $interactionRepository, EntityManagerInterface $entityManager): JsonResponse
     {
         $post = $entityManager->getRepository(Post::class)->find($postId);
         if (!$post) {
@@ -100,8 +100,22 @@ public function unlike(int $postId, Request $request, EntityManagerInterface $en
 
         $likes = $interactionRepository->count(['post' => $postId, 'type' => 'like']);
 
-        return new JsonResponse(['likes' => $likes]);
+        $userId = $request->query->get('user_id'); // Get user_id from query parameters
+        $userLiked = false;
+
+        if ($userId) {
+            $user = $entityManager->getRepository(\App\Entity\User::class)->find($userId);
+            if ($user) {
+                $existingInteraction = $interactionRepository->findOneBy([
+                    'post' => $post,
+                    'user' => $user,
+                    'type' => 'like'
+                ]);
+                $userLiked = $existingInteraction !== null;
+            }
+        }
+
+        return new JsonResponse(['likes' => $likes, 'user_liked' => $userLiked]);
     }
-    
     
 }

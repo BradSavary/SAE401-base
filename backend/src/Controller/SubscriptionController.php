@@ -7,55 +7,73 @@ use App\Entity\User;
 use App\Repository\PostRepository;
 use App\Repository\SubscriptionRepository;
 use App\Repository\UserRepository;
+use App\Entity\Post;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use \DateTime;
 use Symfony\Component\HttpFoundation\Request;
+use App\Service\PostService;
 
 class SubscriptionController extends AbstractController
 {
-    #[Route('/subscribe/{id}', name: 'subscribe_user', methods: ['POST'])]
-    public function subscribe(int $id, SubscriptionRepository $subscriptionRepo, EntityManagerInterface $em, UserRepository $userRepo): JsonResponse
-{
-    $currentUser = $this->getUser();
+    private PostService $PostService;
 
-    if (!$currentUser) {
-        return new JsonResponse(['error' => 'Unauthorized'], 401);
+    public function __construct(PostService $PostService)
+    {
+        $this->PostService = $PostService;
     }
 
-    // Fetch the user to subscribe to using the ID
-    $user = $userRepo->find($id);
+    #[Route('/subscriptions/posts/{id}', name: 'subscriptions_posts', methods: ['GET'])]
+    public function getSubscriptionsPosts(
+        int $id,
+        SubscriptionRepository $subscriptionRepo,
+        PostRepository $postRepo,
+        UserRepository $userRepo,
+        Request $request
+    ): JsonResponse {
+        $user = $userRepo->find($id);
 
-    if (!$user) {
-        return new JsonResponse(['error' => 'User not found'], 404);
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not found'], 404);
+        }
+
+        $subscriptions = $subscriptionRepo->findBy(['subscriber' => $user]);
+
+        if (!$subscriptions) {
+            return new JsonResponse(['error' => 'No subscriptions found'], 404);
+        }
+
+        $subscribedUserIds = array_map(fn($sub) => $sub->getSubscribedTo()->getId(), $subscriptions);
+
+        $page = (int) $request->query->get('page', 1);
+        $limit = 15;
+
+        $allPosts = $postRepo->createQueryBuilder('p')
+            ->where('p.user IN (:subscribedUserIds)')
+            ->setParameter('subscribedUserIds', $subscribedUserIds)
+            ->orderBy('p.created_at', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        $paginatedData = $this->PostService->paginatePosts($allPosts, $page, $limit);
+
+        $baseUrl = $this->getParameter('base_url');
+        $uploadDir = $this->getParameter('upload_directory');
+        $currentUser = $this->getUser();
+
+        $formattedPosts = [];
+        foreach ($paginatedData['posts'] as $post) {
+            $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+        }
+
+        return $this->json([
+            'posts' => $formattedPosts,
+            'previous_page' => $paginatedData['previous_page'],
+            'next_page' => $paginatedData['next_page'],
+        ]);
     }
-
-    // Vérifier si l'utilisateur tente de s'abonner à lui-même
-    if ($currentUser instanceof User && $currentUser->getId() === $user->getId()) {
-        return new JsonResponse(['error' => 'You cannot subscribe to yourself'], 400);
-    }
-
-    // Vérifier si l'abonnement existe déjà
-    $existingSubscription = $subscriptionRepo->findOneBy([
-        'subscriber' => $currentUser,
-        'subscribedTo' => $user,
-    ]);
-
-    if ($existingSubscription) {
-        return new JsonResponse(['error' => 'Already subscribed'], 400);
-    }
-
-    $subscription = new Subscription();
-    $subscription->setSubscriber($currentUser);
-    $subscription->setSubscribedTo($user);
-
-    $em->persist($subscription);
-    $em->flush();
-
-    return new JsonResponse(['message' => 'Subscribed successfully']);
-}
 
     #[Route('/unsubscribe/{id}', name: 'unsubscribe_user', methods: ['DELETE'])]
     public function unsubscribe(User $user, SubscriptionRepository $subscriptionRepo, EntityManagerInterface $em): JsonResponse
@@ -81,91 +99,36 @@ class SubscriptionController extends AbstractController
         return new JsonResponse(['message' => 'Unsubscribed successfully']);
     }
 
-    #[Route('/subscriptions/posts/{id}', name: 'subscriptions_posts', methods: ['GET'])]
-    public function getSubscriptionsPosts(
-        int $id,
-        SubscriptionRepository $subscriptionRepo,
-        PostRepository $postRepo,
-        UserRepository $userRepo
-    ): JsonResponse {
-        // Vérifiez si l'utilisateur existe
-        $user = $userRepo->find($id);
-    
-        if (!$user) {
-            return new JsonResponse(['error' => 'User not found'], 404);
-        }
-    
-        // Récupérez les abonnements de l'utilisateur
-        $subscriptions = $subscriptionRepo->findBy(['subscriber' => $user]);
-    
-        if (!$subscriptions) {
-            return new JsonResponse(['error' => 'No subscriptions found'], 404);
-        }
-    
-        // Récupérez les IDs des utilisateurs abonnés
-        $subscribedUserIds = array_map(fn($sub) => $sub->getSubscribedTo()->getId(), $subscriptions);
-    
-        // Pagination
-        $request = Request::createFromGlobals();
-        $page = (int) $request->query->get('page', 1);
-        $limit = 15;
-        $offset = ($page - 1) * $limit;
-    
-        // Récupérez les posts des abonnements
-        $paginator = $postRepo->createQueryBuilder('p')
-            ->where('p.user IN (:subscribedUserIds)')
-            ->setParameter('subscribedUserIds', $subscribedUserIds)
-            ->orderBy('p.created_at', 'DESC')
-            ->setFirstResult($offset)
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
-    
-        $totalPostsCount = count($postRepo->findBy(['user' => $subscribedUserIds]));
-    
-        $previousPage = $page > 1 ? $page - 1 : null;
-        $nextPage = ($offset + $limit) < $totalPostsCount ? $page + 1 : null;
-    
-        // Récupérer les paramètres pour construire les URLs des avatars
-        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
-        $uploadDir = $this->getParameter('upload_directory');
-    
+    #[Route('/subscribe/{id}', name: 'subscribe_user', methods: ['POST'])]
+    public function subscribe(User $user, SubscriptionRepository $subscriptionRepo, EntityManagerInterface $em): JsonResponse
+    {
         $currentUser = $this->getUser();
-    
-        $posts = [];
-        foreach ($paginator as $post) {
-            $postUser = $post->getUser();
-            $avatarUrl = $postUser->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $postUser->getAvatar() : null;
-    
-            $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
-    
-            $postData = [
-                'id' => $post->getId(),
-                'content' => $post->getContent(),
-                'created_at' => $post->getCreatedAt()->format(\DateTime::ATOM), // Format ISO 8601
-                'username' => $postUser->getUsername(),
-                'avatar' => $avatarUrl,
-                'user_id' => $postUser->getId(),
-                'likes' => $post->getLikesCount(),
-                'userLiked' => $isLiked,
-                'isBlocked' => $postUser->getIsBlocked(), // Ajout de l'état de blocage
-            ];
-    
-            // Si l'utilisateur est bloqué, modifiez les données du post
-            if ($postUser->getIsBlocked()) {
-                $postData['content'] = 'This account has been blocked for violating the terms of use.';
-                $postData['likes'] = 0;
-                $postData['userLiked'] = false;
-            }
-    
-            $posts[] = $postData;
+
+        if (!$currentUser) {
+            return new JsonResponse(['error' => 'Unauthorized'], 401);
         }
-    
-        return $this->json([
-            'posts' => $posts,
-            'previous_page' => $previousPage,
-            'next_page' => $nextPage,
+
+        if ($currentUser === $user) {
+            return new JsonResponse(['error' => 'You cannot subscribe to yourself'], 400);
+        }
+
+        $existingSubscription = $subscriptionRepo->findOneBy([
+            'subscriber' => $currentUser,
+            'subscribedTo' => $user,
         ]);
+
+        if ($existingSubscription) {
+            return new JsonResponse(['error' => 'Already subscribed'], 400);
+        }
+
+        $subscription = new Subscription();
+        $subscription->setSubscriber($currentUser);
+        $subscription->setSubscribedTo($user);
+
+        $em->persist($subscription);
+        $em->flush();
+
+        return new JsonResponse(['message' => 'Subscribed successfully']);
     }
 
     #[Route('/subscriptions/check/{id}', name: 'check_subscription', methods: ['GET'])]

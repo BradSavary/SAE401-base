@@ -8,7 +8,7 @@ import { Register } from './routes/register';
 import { Login } from './routes/login';
 import { Confirm } from './routes/confirm';
 
-import { Feed } from './routes/feed';
+import  Feed  from './routes/feed';
 import { Write } from './routes/write';
 import Profile from './routes/profile';
 

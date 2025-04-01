@@ -1,19 +1,20 @@
-import React, { JSX } from 'react';
+import React from 'react';
 
-function PostSkeleton(): JSX.Element {
+const PostSkeleton = () => {
     return (
-        <div className='flex flex-row w-full animate-pulse items-start'>
-            <div className='rounded-full bg-gray-300 min-w-8 min-h-8 mt-4 ml-2'></div>
-            <div className="p-4 border-b border-custom-gray w-full">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="bg-gray-300 h-4 w-1/4 rounded"></div>
-                    <div className="bg-gray-300 h-4 w-1/6 rounded"></div>
+        <div className="animate-pulse flex flex-col space-y-4 p-4 border border-gray-200 rounded-lg">
+            <div className="flex space-x-4">
+                <div className="rounded-full bg-gray-300 h-10 w-10"></div>
+                <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
                 </div>
-                <div className="bg-gray-300 h-4 w-full rounded mb-2"></div>
-                <div className="bg-gray-300 h-4 w-5/6 rounded"></div>
             </div>
+            <div className="h-4 bg-gray-300 rounded"></div>
+            <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+            <div className="h-4 bg-gray-300 rounded w-4/5"></div>
         </div>
     );
-}
+};
 
-export { PostSkeleton };
+export default PostSkeleton;

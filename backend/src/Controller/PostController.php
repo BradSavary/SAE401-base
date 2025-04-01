@@ -21,57 +21,37 @@ use App\Entity\User;
 
 final class PostController extends AbstractController
 {
-    #[Route('/posts', name: 'posts.index', methods: ['GET'])]
-    public function index(Request $request, PostRepository $postRepository): Response
-{
-    $page = (int) $request->query->get('page', 1);
-    $offset = ($page - 1) * 15;
+    private PostService $PostService;
 
-    $paginator = $postRepository->paginateAllOrderedByLatest($offset, 15);
-    $totalPostsCount = $paginator->count();
-
-    $previousPage = $page > 1 ? $page - 1 : null;
-    $nextPage = ($offset + 15) < $totalPostsCount ? $page + 1 : null;
-
-    $baseUrl = $this->getParameter('base_url');
-    $uploadDir = $this->getParameter('upload_directory');
-
-    $currentUser = $this->getUser();
-
-    $posts = [];
-    foreach ($paginator as $post) {
-        $user = $post->getUser();
-
-        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
-        $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
-
-        $postData = [
-            'id' => $post->getId(),
-            'content' => $post->getContent(),
-            'created_at' => $post->getCreatedAt(),
-            'username' => $user->getUsername(),
-            'avatar' => $avatarUrl,
-            'user_id' => $user->getId(),
-            'likes' => $post->getLikesCount(),
-            'userLiked' => $isLiked,
-            'isBlocked' => $user->getIsBlocked(),
-        ];
-
-        if ($user->getIsBlocked()) {
-            $postData['content'] = 'This account has been blocked for violating the terms of use.';
-            $postData['likes'] = 0;
-            $postData['userLiked'] = false;
-        }
-
-        $posts[] = $postData;
+    public function __construct(PostService $PostService)
+    {
+        $this->PostService = $PostService;
     }
 
-    return $this->json([
-        'posts' => $posts,
-        'previous_page' => $previousPage,
-        'next_page' => $nextPage
-    ]);
-}
+    #[Route('/posts', name: 'posts.index', methods: ['GET'])]
+    public function index(Request $request, PostRepository $postRepository): Response
+    {
+        $page = (int) $request->query->get('page', 1);
+        $limit = 15;
+
+        $allPosts = $postRepository->findBy([], ['created_at' => 'DESC']);
+        $paginatedData = $this->PostService->paginatePosts($allPosts, $page, $limit);
+
+        $baseUrl = $this->getParameter('base_url');
+        $uploadDir = $this->getParameter('upload_directory');
+        $currentUser = $this->getUser();
+
+        $formattedPosts = [];
+        foreach ($paginatedData['posts'] as $post) {
+            $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+        }
+
+        return $this->json([
+            'posts' => $formattedPosts,
+            'previous_page' => $paginatedData['previous_page'],
+            'next_page' => $paginatedData['next_page'],
+        ]);
+    }
 
 #[Route('/posts', name: 'posts.create', methods: ['POST'])]
 public function create(
@@ -101,47 +81,38 @@ if ($currentUser->getIsBlocked()) {
 }
 
 #[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]
-public function getUserPosts(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
-{
+public function getUserPosts(
+    int $id,
+    Request $request,
+    PostRepository $postRepository,
+    EntityManagerInterface $entityManager
+): JsonResponse {
     $user = $entityManager->getRepository(User::class)->find($id);
 
     if (!$user) {
         return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
     }
 
-    $posts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
+    $allPosts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
+
+    $page = (int) $request->query->get('page', 1);
+    $limit = 15; // Nombre de posts par page
+    $paginatedData = $this->PostService->paginatePosts($allPosts, $page, $limit);
 
     $baseUrl = $this->getParameter('base_url');
     $uploadDir = $this->getParameter('upload_directory');
     $currentUser = $this->getUser();
 
-    $postData = [];
-    foreach ($posts as $post) {
-        $avatarUrl = $user->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar() : null;
-        $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
-
-        $postDetails = [
-            'id' => $post->getId(),
-            'content' => $post->getContent(),
-            'created_at' => $post->getCreatedAt(),
-            'username' => $user->getUsername(),
-            'avatar' => $avatarUrl,
-            'user_id' => $user->getId(),
-            'likes' => $post->getLikesCount(),
-            'userLiked' => $isLiked,
-            'isBlocked' => $user->getIsBlocked(), // Ajout de l'état de blocage
-        ];
-
-        if ($user->getIsBlocked()) {
-            $postDetails['content'] = 'This account has been blocked for violating the terms of use.';
-            $postDetails['likes'] = 0;
-            $postDetails['userLiked'] = false;
-        }
-
-        $postData[] = $postDetails;
+    $formattedPosts = [];
+    foreach ($paginatedData['posts'] as $post) {
+        $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
     }
 
-    return new JsonResponse($postData, JsonResponse::HTTP_OK);
+    return new JsonResponse([
+        'posts' => $formattedPosts,
+        'previous_page' => $paginatedData['previous_page'],
+        'next_page' => $paginatedData['next_page'],
+    ], JsonResponse::HTTP_OK);
 }
 
 
@@ -177,49 +148,36 @@ public function getUserPosts(int $id, PostRepository $postRepository, EntityMana
     #[Route('/posts/liked/{id}', name: 'posts.liked', methods: ['GET'])]
     public function getLikedPostsByUser(
         int $id,
+        Request $request,
         PostInteractionRepository $postInteractionRepository,
         EntityManagerInterface $entityManager
     ): JsonResponse {
         $user = $entityManager->getRepository(User::class)->find($id);
-
+    
         if (!$user) {
             return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
         }
-
+    
         $likedPosts = $postInteractionRepository->findLikedPostsByUser($user);
-
+    
+        $page = (int) $request->query->get('page', 1);
+        $limit = 15; // Nombre de posts par page
+        $paginatedData = $this->PostService->paginatePosts($likedPosts, $page, $limit);
+    
         $baseUrl = $this->getParameter('base_url');
         $uploadDir = $this->getParameter('upload_directory');
         $currentUser = $this->getUser();
-
-        $postData = [];
-        foreach ($likedPosts as $interaction) {
+    
+        $formattedPosts = [];
+        foreach ($paginatedData['posts'] as $interaction) {
             $post = $interaction->getPost();
-            $postUser = $post->getUser();
-            $avatarUrl = $postUser->getAvatar() ? $baseUrl . '/' . $uploadDir . '/' . $postUser->getAvatar() : null;
-            $isLiked = $currentUser ? $post->isLikedByUser($currentUser) : false;
-
-            $postDetails = [
-                'id' => $post->getId(),
-                'content' => $post->getContent(),
-                'created_at' => $post->getCreatedAt(),
-                'username' => $postUser->getUsername(),
-                'avatar' => $avatarUrl,
-                'user_id' => $postUser->getId(),
-                'likes' => $post->getLikesCount(),
-                'userLiked' => $isLiked,
-                'isBlocked' => $postUser->getIsBlocked(),
-            ];
-
-            if ($postUser->getIsBlocked()) {
-                $postDetails['content'] = 'This account has been blocked for violating the terms of use.';
-                $postDetails['likes'] = 0;
-                $postDetails['userLiked'] = false;
-            }
-
-            $postData[] = $postDetails;
+            $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
         }
-
-        return new JsonResponse($postData, JsonResponse::HTTP_OK);
+    
+        return new JsonResponse([
+            'posts' => $formattedPosts,
+            'previous_page' => $paginatedData['previous_page'],
+            'next_page' => $paginatedData['next_page'],
+        ], JsonResponse::HTTP_OK);
     }
 }
