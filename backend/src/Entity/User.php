@@ -9,6 +9,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use App\Entity\Comment;
 
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
@@ -46,6 +47,9 @@ private Collection $subscribers;
 
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Post::class, orphanRemoval: true)]
     private Collection $posts;
+
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Comment::class, orphanRemoval: true)]
+    private Collection $comments;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $apiToken = null;
@@ -86,8 +90,10 @@ private Collection $subscribers;
     public function __construct()
     {
         $this->posts = new ArrayCollection();
+        $this->comments = new ArrayCollection();
         $this->subscriptions = new ArrayCollection();
-        $this->subscribers = new ArrayCollection();    
+        $this->subscribers = new ArrayCollection();
+        $this->roles = ['ROLE_USER'];
     }
 
     public function getSubscriptions(): Collection
@@ -309,6 +315,36 @@ private Collection $subscribers;
     public function setIsBlocked(bool $isBlocked): static
     {
         $this->isBlocked = $isBlocked;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Comment>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    public function addComment(Comment $comment): self
+    {
+        if (!$this->comments->contains($comment)) {
+            $this->comments[] = $comment;
+            $comment->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeComment(Comment $comment): self
+    {
+        if ($this->comments->removeElement($comment)) {
+            // set the owning side to null (unless already changed)
+            if ($comment->getUser() === $this) {
+                $comment->setUser(null);
+            }
+        }
+
         return $this;
     }
 }

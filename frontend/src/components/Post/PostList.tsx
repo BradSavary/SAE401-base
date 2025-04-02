@@ -5,6 +5,22 @@ import Post from './Post';
 interface MediaItem {
     url: string;
     type: string;
+    id?: number;
+}
+
+interface CommentUserInfo {
+    id: number;
+    username: string;
+    avatar: string | null;
+    is_blocked: boolean;
+}
+
+interface CommentData {
+    id: number;
+    content: string;
+    created_at: { date: string; timezone_type: number; timezone: string };
+    user: CommentUserInfo;
+    post_id: number;
 }
 
 interface PostData {
@@ -12,11 +28,12 @@ interface PostData {
     username: string;
     content: string;
     created_at: { date: string; timezone_type: number; timezone: string };
-    avatar: string | null;
+    avatar: string;  // Changed from string | null to string to match Post.tsx
     user_id: number;
-    userLiked: boolean;
+    userLiked?: boolean;  // Made optional
     isBlocked: boolean;
-    media: MediaItem[]; // Tableau de médias associés au post
+    media: MediaItem[];
+    comments?: CommentData[];
 }
 
 interface PostListProps {
@@ -44,7 +61,13 @@ function PostList({ endpoint, className }: PostListProps) {
                 // Filtrer les posts déjà existants
                 setPosts((prevPosts) => {
                     const existingIds = new Set(prevPosts.map((post) => post.id));
-                    const filteredPosts: PostData[] = newPosts.filter((post: PostData) => !existingIds.has(post.id));
+                    // Ensure avatar is never null for type compatibility
+                    const filteredPosts: PostData[] = newPosts
+                        .filter((post: any) => !existingIds.has(post.id))
+                        .map((post: any) => ({
+                            ...post,
+                            avatar: post.avatar || '../../../public/default-avata.webp',
+                        }));
                     return [...prevPosts, ...filteredPosts];
                 });
     
@@ -107,21 +130,17 @@ function PostList({ endpoint, className }: PostListProps) {
         return () => clearTimeout(timeout);
     }, [posts, loading]);
 
+    const handleDeletePost = (postId: number) => {
+        setPosts((prevPosts) => prevPosts.filter((p) => p.id !== postId));
+    };
+
     return (
         <div ref={containerRef} className={`overflow-y-auto scrollbar-thin ${className || ''}`} style={{ maxHeight: '80vh' }}>
             {posts.map((post) => (
                 <Post
                     key={post.id}
-                    id={post.id}
-                    username={post.username}
-                    content={post.content}
-                    created_at={post.created_at}
-                    avatar={post.avatar}
-                    user_id={post.user_id}
-                    userLiked={post.userLiked}
-                    isBlocked={post.isBlocked}
-                    onDelete={(postId) => setPosts((prevPosts) => prevPosts.filter((p) => p.id !== postId))}
-                    media={post.media} // Passer le tableau de médias au composant Post
+                    post={post}
+                    onDelete={handleDeletePost}
                 />
             ))}
             {loading && <div className="text-custom text-center mt-4">Loading...</div>}

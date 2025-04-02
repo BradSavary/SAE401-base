@@ -5,6 +5,22 @@ import Post from '../Post/Post';
 interface MediaItem {
     url: string;
     type: string;
+    id?: number;
+}
+
+interface CommentUserInfo {
+    id: number;
+    username: string;
+    avatar: string | null;
+    is_blocked: boolean;
+}
+
+interface CommentData {
+    id: number;
+    content: string;
+    created_at: { date: string; timezone_type: number; timezone: string };
+    user: CommentUserInfo;
+    post_id: number;
 }
 
 interface PostData {
@@ -12,12 +28,12 @@ interface PostData {
     username: string;
     content: string;
     created_at: { date: string; timezone_type: number; timezone: string };
-    avatar: string | null;
+    avatar: string;
     user_id: number;
-    userLiked: boolean;
+    userLiked?: boolean;
     isBlocked: boolean;
     media: MediaItem[];
-    onDelete?: (postId: number) => void;
+    comments?: CommentData[];
 }
 
 interface SharedPostListProps {
@@ -34,7 +50,14 @@ const SharedPostList: React.FC<SharedPostListProps> = ({ endpoint }) => {
             try {
                 const response = await apiRequest(endpoint);
                 const data = await response.json();
-                setPosts(data.posts);
+                
+                // Ensure all posts have the correct data format
+                const formattedPosts = (data.posts || []).map((post: any) => ({
+                    ...post,
+                    avatar: post.avatar || '../../../public/default-avata.webp'
+                }));
+                
+                setPosts(formattedPosts);
             } catch (err: any) {
                 setError(err.message || 'An error occurred');
             } finally {
@@ -56,8 +79,8 @@ const SharedPostList: React.FC<SharedPostListProps> = ({ endpoint }) => {
         <div>
             {posts.map(post => (
                 <Post 
-                    key={post.id} 
-                    {...post} 
+                    key={post.id}
+                    post={post}
                     onDelete={handleDelete}
                 />
             ))}
