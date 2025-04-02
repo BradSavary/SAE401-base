@@ -149,14 +149,14 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                                     {connectedUserId === user_id ? (
                                         <>
                                             <button
-                                                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 cursor-pointer"
                                                 onClick={() => setShowConfirm(true)}
                                             >
                                                 Delete
                                             </button>
                                         </>
                                     ) : (
-                                        <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                                             Report
                                         </button>
                                     )}
@@ -176,13 +176,13 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                             <div className="flex justify-between absolute top-1/2 transform -translate-y-1/2 w-full">
                                 <button 
                                     onClick={prevMedia} 
-                                    className="bg-gray-800 bg-opacity-50 text-white rounded-full p-1 ml-2 hover:bg-opacity-70"
+                                    className="bg-custom bg-opacity-50 text-white rounded-full p-1 ml-2 hover:bg-opacity-70 cursor-pointer"
                                 >
                                     ←
                                 </button>
                                 <button 
                                     onClick={nextMedia}
-                                    className="bg-gray-800 bg-opacity-50 text-white rounded-full p-1 mr-2 hover:bg-opacity-70"
+                                    className="flex items-center justify-center bg-custom bg-opacity-50 text-white rounded-full p-1 mr-2 hover:bg-opacity-70 cursor-pointer"
                                 >
                                     →
                                 </button>
@@ -194,7 +194,7 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                                 {media.map((_, index) => (
                                     <div 
                                         key={index}
-                                        className={`w-2 h-2 mx-1 rounded-full ${currentMediaIndex === index ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                        className={`w-2 h-2 mx-1 cursor-pointer rounded-full ${currentMediaIndex === index ? 'bg-blue-500' : 'bg-gray-300'}`}
                                         onClick={() => setCurrentMediaIndex(index)}
                                     />
                                 ))}

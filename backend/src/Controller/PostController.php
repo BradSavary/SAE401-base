@@ -207,31 +207,42 @@ public function getUserPosts(
 #[IsGranted("ROLE_USER")]
 public function delete(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
 {
-    $post = $postRepository->find($id);
+    try {
+        $post = $postRepository->find($id);
 
-    if (!$post) {
-        return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
-    }
-
-    $currentUser = $this->getUser();
-
-    if ($this->isGranted('ROLE_ADMIN') || $post->getUser() === $currentUser) {
-        // Supprimer le fichier média associé au post
-        $mediaPath = $post->getMedia();
-        if ($mediaPath) {
-            $fullPath = $this->getParameter('kernel.project_dir') . '/public/uploads/media/' . $mediaPath;
-            if (file_exists($fullPath)) {
-                unlink($fullPath); // Supprime le fichier
-            }
+        if (!$post) {
+            return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        $entityManager->remove($post);
-        $entityManager->flush();
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
 
-        return new JsonResponse(['status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
+        if ($this->isGranted('ROLE_ADMIN') || $post->getUser() === $currentUser) {
+            // Supprimer les fichiers médias associés au post
+            foreach ($post->getMedia() as $media) {
+                $fileName = $media->getFilename();
+                if ($fileName) {
+                    $filePath = dirname(__DIR__, 2) . '/public/uploads/media/' . $fileName;
+                    if (file_exists($filePath)) {
+                        unlink($filePath); // Supprime le fichier
+                    }
+                }
+            }
+
+            $entityManager->remove($post);
+            $entityManager->flush();
+
+            return new JsonResponse(['status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
+        }
+
+        return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'error' => 'An error occurred while deleting the post: ' . $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
     }
-
-    return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
 }
 
     #[Route('/posts/liked/{id}', name: 'posts.liked', methods: ['GET'])]
