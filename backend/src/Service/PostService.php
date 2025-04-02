@@ -101,7 +101,10 @@ class PostService
         }
     }
 
-    private function determineMediaType(string $mimeType): string
+    /**
+     * Détermine le type de média à partir du type MIME
+     */
+    public function determineMediaType(string $mimeType): string
     {
         if (str_starts_with($mimeType, 'image/')) {
             return 'image';
@@ -122,6 +125,7 @@ class PostService
         $mediaUrls = [];
         foreach ($post->getMedia() as $media) {
             $mediaUrls[] = [
+                'id' => $media->getId(),
                 'url' => $baseUrl . '/uploads/media/' . $media->getFilename(),
                 'type' => $media->getType()
             ];

@@ -19,7 +19,7 @@ export function NavBar() {
     }, []);
 
     return (
-        <nav className="bg-black text-custom p-4 bottom-0 w-full fixed z-50">
+        <nav className="bg-black text-custom p-4 bottom-0 w-full fixed z-20">
             <ul className="flex justify-between ">
                 <li>
                     <Link to="/feed" className="">

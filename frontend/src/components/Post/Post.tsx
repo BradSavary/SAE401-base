@@ -4,11 +4,13 @@ import { DotsIcon } from '../../ui/Icon/3dots';
 import { apiRequest } from '../../lib/api-request';
 import { LikeIcon } from '../../ui/NavBarIcon/like';
 import { LikeSIcon } from '../../ui/NavBarIcon/likeS';
-import { post } from 'axios';
+import EditPostModal from './EditPostModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 interface MediaItem {
     url: string;
     type: string;
+    id?: number; // ID du média (utile pour la suppression)
 }
 
 interface PostProps {
@@ -27,6 +29,7 @@ interface PostProps {
 const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, onDelete, userLiked, media }: PostProps): JSX.Element => {
     const [showPopup, setShowPopup] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [liked, setLiked] = useState(userLiked); // État pour savoir si l'utilisateur a liké
     const [likeCount, setLikeCount] = useState<number>(0); // Compteur de likes
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0); // Index du média actuel pour le carrousel
@@ -122,6 +125,11 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
         return null;
     };
 
+    const handleEditSuccess = () => {
+        // Recharger la page pour afficher les changements
+        window.location.reload();
+    };
+
     return (
         <div className="flex flex-row w-full bg-custom">
             <Link to={`/profile/${username}`} className="flex-shrink-0">
@@ -145,19 +153,31 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                                 onClick={() => setShowPopup(!showPopup)}
                             />
                             {showPopup && (
-                                <div className="absolute top-8 right-0 bg-white shadow-md rounded-md p-2 z-10">
+                                <div className="absolute top-8 right-0 bg-custom-inverse shadow-md rounded-md p-2 z-10">
                                     {connectedUserId === user_id ? (
                                         <>
                                             <button
-                                                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 cursor-pointer"
-                                                onClick={() => setShowConfirm(true)}
+                                                className="block w-full text-left px-4 py-2 text-sm text-custom-blue hover:bg-custom-light-gray hover:bg-opacity-20 cursor-pointer"
+                                                onClick={() => {
+                                                    setShowPopup(false);
+                                                    setShowEditModal(true);
+                                                }}
                                             >
-                                                Delete
+                                                Modifier
+                                            </button>
+                                            <button
+                                                className="block w-full text-left px-4 py-2 text-sm text-custom-red hover:bg-custom-light-gray hover:bg-opacity-20 cursor-pointer"
+                                                onClick={() => {
+                                                    setShowPopup(false);
+                                                    setShowConfirm(true);
+                                                }}
+                                            >
+                                                Supprimer
                                             </button>
                                         </>
                                     ) : (
-                                        <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                                            Report
+                                        <button className="block w-full text-left px-4 py-2 text-sm text-custom-gray hover:bg-custom-light-gray hover:bg-opacity-20 cursor-pointer">
+                                            Signaler
                                         </button>
                                     )}
                                 </div>
@@ -176,13 +196,13 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                             <div className="flex justify-between absolute top-1/2 transform -translate-y-1/2 w-full">
                                 <button 
                                     onClick={prevMedia} 
-                                    className="bg-custom bg-opacity-50 text-white rounded-full p-1 ml-2 hover:bg-opacity-70 cursor-pointer"
+                                    className="bg-custom bg-opacity-50 text-custom rounded-full p-1 ml-2 hover:bg-opacity-70 cursor-pointer"
                                 >
                                     ←
                                 </button>
                                 <button 
                                     onClick={nextMedia}
-                                    className="flex items-center justify-center bg-custom bg-opacity-50 text-white rounded-full p-1 mr-2 hover:bg-opacity-70 cursor-pointer"
+                                    className="flex items-center justify-center bg-custom bg-opacity-50 text-custom rounded-full p-1 mr-2 hover:bg-opacity-70 cursor-pointer"
                                 >
                                     →
                                 </button>
@@ -194,7 +214,7 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                                 {media.map((_, index) => (
                                     <div 
                                         key={index}
-                                        className={`w-2 h-2 mx-1 cursor-pointer rounded-full ${currentMediaIndex === index ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                        className={`w-2 h-2 mx-1 cursor-pointer rounded-full ${currentMediaIndex === index ? 'bg-custom-blue' : 'bg-custom-gray'}`}
                                         onClick={() => setCurrentMediaIndex(index)}
                                     />
                                 ))}
@@ -206,35 +226,28 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                     <div className="mt-4 flex items-center text-custom">
                         <button onClick={handleLike} className="flex items-center gap-1 cursor-pointer">
                             {liked ? (
-                                <LikeSIcon className="w-6 h-6 text-red-500" alt="Liked" />
+                                <LikeSIcon className="w-6 h-6 text-custom-red" alt="Liked" />
                             ) : (
-                                <LikeIcon className="w-5 h-5 text-gray-500" alt="Like" />
+                                <LikeIcon className="w-5 h-5 text-custom-gray" alt="Like" />
                             )}
-                            <span className="text-sm text-gray-700">{likeCount}</span>
+                            <span className="text-sm text-custom-light-gray">{likeCount}</span>
                         </button>
                     </div>
                 )}
             </div>
-            {showConfirm && (
-                <div className="fixed inset-0 flex items-center justify-center z-20 backdrop-blur-sm">
-                    <div className="bg-white p-6 rounded-md shadow-md">
-                        <p className="mb-4 text-custom-inverse">Are you sure you want to delete this post?</p>
-                        <div className="flex justify-end gap-4">
-                            <button
-                                className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 text-custom-inverse"
-                                onClick={() => setShowConfirm(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                                onClick={handleDelete}
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            
+            {/* Modal de confirmation de suppression */}
+            {showConfirm && <ConfirmDeleteModal onCancel={() => setShowConfirm(false)} onConfirm={handleDelete} />}
+            
+            {/* Modal d'édition du post */}
+            {showEditModal && (
+                <EditPostModal
+                    postId={id}
+                    initialContent={content}
+                    existingMedia={media}
+                    onClose={() => setShowEditModal(false)}
+                    onSuccess={handleEditSuccess}
+                />
             )}
         </div>
     );

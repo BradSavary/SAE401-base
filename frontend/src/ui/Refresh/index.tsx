@@ -18,7 +18,7 @@ const RefreshButton = ({ onRefresh }: RefreshButtonProps) => {
 
     return (
         <div
-            className={`fixed self-center z-50 transition-opacity transition-transform duration-300 ${
+            className={`fixed self-center z-20 transition-opacity transition-transform duration-300 ${
                 showButton ? 'opacity-100 translate-y-25' : 'top-0 opacity-0 pointer-events-none'
             }`}
         >
