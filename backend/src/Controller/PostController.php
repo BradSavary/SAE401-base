@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Dto\Payload\CreatePostPayload;
 use App\Entity\Post;
+use App\Entity\User;
 use App\Service\PostService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,7 +18,6 @@ use Symfony\Component\Security\Core\Security;
 use App\Repository\PostInteractionRepository;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use App\Entity\User;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class PostController extends AbstractController
@@ -62,30 +62,109 @@ final class PostController extends AbstractController
         PostService $postService, 
         EntityManagerInterface $entityManager
     ): Response {
-        $currentUser = $this->getUser();
-    
-        if ($currentUser->getIsBlocked()) {
-            return new JsonResponse(['error' => 'Your account has been blocked. You cannot create posts.'], Response::HTTP_FORBIDDEN);
+        try {
+            /** @var User|null $currentUser */
+            $currentUser = $this->getUser();
+        
+            if (!$currentUser) {
+                return new JsonResponse(['error' => 'User not authenticated'], Response::HTTP_UNAUTHORIZED);
+            }
+        
+            $content = $request->request->get('content');
+            if (empty($content)) {
+                return new JsonResponse(['error' => 'Content is required'], Response::HTTP_BAD_REQUEST);
+            }
+        
+            $payload = new CreatePostPayload();
+            $payload->setContent($content);
+            
+            // On utilise la méthode de réflexion pour récupérer l'ID de l'utilisateur
+            $reflection = new \ReflectionObject($currentUser);
+            $idProperty = $reflection->getProperty('id');
+            $idProperty->setAccessible(true);
+            $userId = $idProperty->getValue($currentUser);
+            
+            if (!$userId) {
+                return new JsonResponse(['error' => 'Could not determine user ID'], Response::HTTP_BAD_REQUEST);
+            }
+            $payload->setUserId($userId);
+        
+            // Récupérer et valider les fichiers média
+            $mediaFiles = $request->files->get('media');
+            
+            // Déboguer les données reçues
+            $debugData = [
+                'content' => $content,
+                'user_id' => $userId,
+                'mediaFiles_type' => gettype($mediaFiles),
+                'files_keys' => array_keys($request->files->all()),
+                'has_media' => $request->files->has('media')
+            ];
+            
+            if (!empty($mediaFiles)) {
+                // Si un seul fichier est envoyé, on le met dans un tableau
+                if (!is_array($mediaFiles)) {
+                    $mediaFiles = [$mediaFiles];
+                }
+                
+                // Log pour le débogage
+                $fileInfo = [];
+                foreach ($mediaFiles as $index => $file) {
+                    if ($file instanceof UploadedFile) {
+                        $fileInfo[] = [
+                            'index' => $index,
+                            'originalName' => $file->getClientOriginalName(),
+                            'mimeType' => $file->getMimeType(),
+                            'size' => $file->getSize(),
+                            'error' => $file->getError(),
+                            'path' => $file->getPathname(),
+                            'exists' => file_exists($file->getPathname())
+                        ];
+                    } else {
+                        $fileInfo[] = [
+                            'index' => $index,
+                            'type' => gettype($file),
+                            'value' => is_object($file) ? get_class($file) : (is_scalar($file) ? $file : 'not scalar')
+                        ];
+                    }
+                }
+                
+                $debugData['fileInfo'] = $fileInfo;
+                $payload->setMedia($mediaFiles);
+            }
+        
+            // Vérifier si on a des erreurs de validation
+            $errors = $validator->validate($payload);
+            if (count($errors) > 0) {
+                $errorMessages = [];
+                foreach ($errors as $error) {
+                    $errorMessages[] = $error->getMessage();
+                }
+                return new JsonResponse([
+                    'errors' => $errorMessages,
+                    'debug' => $debugData
+                ], Response::HTTP_BAD_REQUEST);
+            }
+        
+            $postService->create($payload);
+        
+            return new JsonResponse(['status' => 'Post created successfully'], Response::HTTP_CREATED);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'debug' => $debugData ?? null
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'debug' => $debugData ?? null
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-    
-        $payload = new CreatePostPayload();
-        $payload->setContent($request->request->get('content'));
-        $payload->setUserId($currentUser->getId());
-    
-        // Gestion du fichier média
-        $media = $request->files->get('media');
-        if ($media instanceof UploadedFile) {
-            $payload->setMedia($media);
-        }
-    
-        $errors = $validator->validate($payload);
-        if (count($errors) > 0) {
-            return $this->json($errors, Response::HTTP_BAD_REQUEST);
-        }
-    
-        $postService->create($payload);
-    
-        return new JsonResponse(['status' => 'Post created'], Response::HTTP_CREATED);
     }
 
 #[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]

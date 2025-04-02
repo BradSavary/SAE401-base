@@ -2,6 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { apiRequest } from '../../lib/api-request';
 import Post from './Post';
 
+interface MediaItem {
+    url: string;
+    type: string;
+}
+
 interface PostData {
     id: number;
     username: string;
@@ -11,7 +16,7 @@ interface PostData {
     user_id: number;
     userLiked: boolean;
     isBlocked: boolean;
-    media: string | null; // URL du média associé au post
+    media: MediaItem[]; // Tableau de médias associés au post
 }
 
 interface PostListProps {
@@ -116,7 +121,7 @@ function PostList({ endpoint, className }: PostListProps) {
                     userLiked={post.userLiked}
                     isBlocked={post.isBlocked}
                     onDelete={(postId) => setPosts((prevPosts) => prevPosts.filter((p) => p.id !== postId))}
-                    media={post.media} // Passer le média au composant Post
+                    media={post.media} // Passer le tableau de médias au composant Post
                 />
             ))}
             {loading && <div className="text-custom text-center mt-4">Loading...</div>}

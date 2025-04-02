@@ -15,6 +15,18 @@ class CreatePostPayload
     #[Assert\NotBlank]
     private ?int $user_id = null;
 
+    /**
+     * @var UploadedFile[]
+     */
+    #[Assert\All([
+        new Assert\File(
+            maxSize: "25M",
+            mimeTypes: ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/mkv", "audio/mpeg", "audio/wav", "audio/mp3"],
+            mimeTypesMessage: "Please upload a valid image, video or audio file."
+        )
+    ])]
+    private array $media = [];
+
     public function getContent(): ?string
     {
         return $this->content;
@@ -37,22 +49,20 @@ class CreatePostPayload
         return $this;
     }
 
-    #[Assert\File(
-        maxSize: "5M",
-        mimeTypes: ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/mkv", "audio/mpeg", "audio/wav", "audio/mp3"],
-        mimeTypesMessage: "Please upload a valid image or video file."
-    )]
-    private ?UploadedFile $media = null;
-
-    public function getMedia(): ?UploadedFile
+    /**
+     * @return UploadedFile[]
+     */
+    public function getMedia(): array
     {
         return $this->media;
     }
 
-    public function setMedia(?UploadedFile $media): self
+    /**
+     * @param UploadedFile[] $media
+     */
+    public function setMedia(array $media): self
     {
         $this->media = $media;
         return $this;
     }
-    
 }

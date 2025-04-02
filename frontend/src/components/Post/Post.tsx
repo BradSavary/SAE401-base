@@ -6,6 +6,11 @@ import { LikeIcon } from '../../ui/NavBarIcon/like';
 import { LikeSIcon } from '../../ui/NavBarIcon/likeS';
 import { post } from 'axios';
 
+interface MediaItem {
+    url: string;
+    type: string;
+}
+
 interface PostProps {
     id: number;
     username: string;
@@ -16,7 +21,7 @@ interface PostProps {
     isBlocked: boolean;
     onDelete: (postId: number) => void;
     userLiked: boolean; // Indique si l'utilisateur connecté a liké ce post
-    media: string | null; // URL du média associé au post
+    media: MediaItem[]; // Tableau de médias associés au post
 }
 
 const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, onDelete, userLiked, media }: PostProps): JSX.Element => {
@@ -24,6 +29,7 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
     const [showConfirm, setShowConfirm] = useState(false);
     const [liked, setLiked] = useState(userLiked); // État pour savoir si l'utilisateur a liké
     const [likeCount, setLikeCount] = useState<number>(0); // Compteur de likes
+    const [currentMediaIndex, setCurrentMediaIndex] = useState(0); // Index du média actuel pour le carrousel
 
     const connectedUserId = Number(localStorage.getItem('user_id')); // ID de l'utilisateur connecté
 
@@ -81,6 +87,41 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
         }
     };
 
+    // Navigation dans le carrousel
+    const nextMedia = () => {
+        if (media && media.length > 0) {
+            setCurrentMediaIndex((prevIndex) => (prevIndex + 1) % media.length);
+        }
+    };
+
+    const prevMedia = () => {
+        if (media && media.length > 0) {
+            setCurrentMediaIndex((prevIndex) => (prevIndex - 1 + media.length) % media.length);
+        }
+    };
+
+    // Rendu du média
+    const renderMedia = (mediaItem: MediaItem) => {
+        if (mediaItem.type === 'image') {
+            return <img src={mediaItem.url} alt="Post media" className="max-w-full h-auto rounded-md" />;
+        } else if (mediaItem.type === 'video') {
+            return (
+                <video controls className="max-w-full h-auto rounded-md">
+                    <source src={mediaItem.url} type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+            );
+        } else if (mediaItem.type === 'audio') {
+            return (
+                <audio controls className="w-full">
+                    <source src={mediaItem.url} type="audio/mpeg" />
+                    Your browser does not support the audio tag.
+                </audio>
+            );
+        }
+        return null;
+    };
+
     return (
         <div className="flex flex-row w-full bg-custom">
             <Link to={`/profile/${username}`} className="flex-shrink-0">
@@ -127,17 +168,39 @@ const Post = ({ id, username, content, created_at, avatar, user_id, isBlocked, o
                 <div className={`text-gray-800 break-words max-w-65  ${isBlocked ? 'text-custom-red' : 'text-custom-light-gray'}` }>
                     {content}
                 </div>
-                {media && (
-                <div className="mt-4">
-                    {media.endsWith('.jpg') || media.endsWith('.png') || media.endsWith('.jpeg') ? (
-                        <img src={media} alt="Post media" className="max-w-full h-auto rounded-md" />
-                    ) : (
-                        <video controls className="max-w-full h-auto rounded-md">
-                            <source src={media} type="video/mp4" />
-                            Your browser does not support the video tag.
-                        </video>
-                    )}
-                </div>
+                {media && media.length > 0 && (
+                    <div className="mt-4 relative">
+                        {renderMedia(media[currentMediaIndex])}
+                        
+                        {media.length > 1 && (
+                            <div className="flex justify-between absolute top-1/2 transform -translate-y-1/2 w-full">
+                                <button 
+                                    onClick={prevMedia} 
+                                    className="bg-gray-800 bg-opacity-50 text-white rounded-full p-1 ml-2 hover:bg-opacity-70"
+                                >
+                                    ←
+                                </button>
+                                <button 
+                                    onClick={nextMedia}
+                                    className="bg-gray-800 bg-opacity-50 text-white rounded-full p-1 mr-2 hover:bg-opacity-70"
+                                >
+                                    →
+                                </button>
+                            </div>
+                        )}
+                        
+                        {media.length > 1 && (
+                            <div className="flex justify-center mt-2">
+                                {media.map((_, index) => (
+                                    <div 
+                                        key={index}
+                                        className={`w-2 h-2 mx-1 rounded-full ${currentMediaIndex === index ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                        onClick={() => setCurrentMediaIndex(index)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 )}
                 {!isBlocked && ( // N'affiche les likes que si l'utilisateur n'est pas bloqué
                     <div className="mt-4 flex items-center text-custom">

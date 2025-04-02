@@ -14,6 +14,9 @@ class Post
     #[ORM\OneToMany(mappedBy: 'post', targetEntity: PostInteraction::class, cascade: ['remove'], orphanRemoval: true)]
     private Collection $interactions;
 
+    #[ORM\OneToMany(mappedBy: 'post', targetEntity: PostMedia::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $media;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
@@ -33,8 +36,41 @@ class Post
     #[ORM\JoinColumn(nullable: false, name: 'author_id', referencedColumnName: 'id')]
     private $author;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $media = null;
+    public function __construct()
+    {
+        $this->interactions = new ArrayCollection();
+        $this->media = new ArrayCollection();
+        $this->created_at = new \DateTime();
+    }
+
+    /**
+     * @return Collection<int, PostMedia>
+     */
+    public function getMedia(): Collection
+    {
+        return $this->media;
+    }
+
+    public function addMedia(PostMedia $media): static
+    {
+        if (!$this->media->contains($media)) {
+            $this->media->add($media);
+            $media->setPost($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMedia(PostMedia $media): static
+    {
+        if ($this->media->removeElement($media)) {
+            if ($media->getPost() === $this) {
+                $media->setPost(null);
+            }
+        }
+
+        return $this;
+    }
 
     public function getAuthor(): ?User
     {
@@ -46,12 +82,6 @@ class Post
         $this->author = $author;
 
         return $this;
-    }
-
-    public function __construct()
-    {
-        $this->interactions = new ArrayCollection();
-        $this->created_at = new \DateTime();
     }
 
     /**
@@ -143,27 +173,13 @@ class Post
     }
 
     public function getLikesCount(): int
-{
-    $count = 0;
-    foreach ($this->interactions as $interaction) {
-        if ($interaction->getType() === 'like') {
-            $count++;
+    {
+        $count = 0;
+        foreach ($this->interactions as $interaction) {
+            if ($interaction->getType() === 'like') {
+                $count++;
+            }
         }
+        return $count;
     }
-    return $count;
-}
-
-    public function getMedia(): ?string
-    {
-        return $this->media;
-    }
-
-    public function setMedia(?string $media): static
-    {
-        $this->media = $media;
-
-        return $this;
-    }
-
-
 }
