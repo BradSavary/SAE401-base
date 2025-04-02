@@ -130,7 +130,7 @@ function Comment({ id, content, created_at, user, post_id, onDelete, onUpdate }:
                       setIsEditing(true);
                     }}
                   >
-                    Modifier
+                    Edit
                   </button>
                   <button
                     className="block bg-custom-inverse w-full text-left px-3 py-1 text-xs text-custom-red  hover:bg-opacity-20 cursor-pointer rounded whitespace-nowrap"
@@ -139,7 +139,7 @@ function Comment({ id, content, created_at, user, post_id, onDelete, onUpdate }:
                       setShowConfirm(true);
                     }}
                   >
-                    Supprimer
+                    Delete
                   </button>
                 </div>
               )}
@@ -164,14 +164,14 @@ function Comment({ id, content, created_at, user, post_id, onDelete, onUpdate }:
             />
             <div className="flex justify-end gap-2 mt-2">
               <button
-                className="px-2 py-1 text-xs bg-custom-light-gray bg-opacity-30 rounded-md hover:bg-opacity-50 text-custom"
+                className="px-2 py-1 text-xs bg-custom-inverse bg-opacity-30 rounded-md hover:bg-opacity-50 text-custom-inverse cursor-pointer"
                 onClick={() => {
                   setIsEditing(false);
                   setEditContent(content);
                 }}
                 disabled={isSubmitting}
               >
-                Annuler
+                Cancel
               </button>
               <Button
                 variant="tertiary"
@@ -179,7 +179,7 @@ function Comment({ id, content, created_at, user, post_id, onDelete, onUpdate }:
                 onClick={handleUpdate}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Envoi...' : 'Enregistrer'}
+                {isSubmitting ? 'Sending...' : 'Comment'}
               </Button>
             </div>
           </div>

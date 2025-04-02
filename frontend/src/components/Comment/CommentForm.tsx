@@ -79,11 +79,11 @@ function CommentForm({ postId, onCommentAdded, onCancel }: CommentFormProps) {
       <div className="flex justify-end gap-2 mt-2">
         {onCancel && (
           <button
-            className="px-2 py-1 text-xs bg-custom-light-gray bg-opacity-30 rounded-md hover:bg-opacity-50 text-custom"
+            className="px-2 py-1 text-xs bg-custom-inverse bg-opacity-30 rounded-md hover:bg-opacity-50 text-custom-inverse"
             onClick={onCancel}
             disabled={isSubmitting}
           >
-            Annuler
+            Cancel
           </button>
         )}
         <Button
@@ -92,11 +92,11 @@ function CommentForm({ postId, onCommentAdded, onCancel }: CommentFormProps) {
           onClick={handleSubmit}
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Envoi...' : 'Répondre'}
+          {isSubmitting ? 'Sending...' : 'Comment'}
         </Button>
       </div>
       <div className="text-xs text-custom-gray my-1">
-        Astuce: Ctrl+Entrée pour publier rapidement
+        Tips: Press Ctrl+Enter to publish quickly
       </div>
     </div>
   );
