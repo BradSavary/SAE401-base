@@ -7,12 +7,19 @@ use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use App\Entity\PostInteraction;
+use App\Entity\Comment;
 
 #[ORM\Entity(repositoryClass: PostRepository::class)]
 class Post
 {
     #[ORM\OneToMany(mappedBy: 'post', targetEntity: PostInteraction::class, cascade: ['remove'], orphanRemoval: true)]
     private Collection $interactions;
+
+    #[ORM\OneToMany(mappedBy: 'post', targetEntity: PostMedia::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $media;
+
+    #[ORM\OneToMany(mappedBy: 'post', targetEntity: Comment::class, cascade: ['remove'], orphanRemoval: true)]
+    private Collection $comments;
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -33,6 +40,46 @@ class Post
     #[ORM\JoinColumn(nullable: false, name: 'author_id', referencedColumnName: 'id')]
     private $author;
 
+    #[ORM\Column(type: 'boolean')]
+    private bool $is_censored = false;
+
+    public function __construct()
+    {
+        $this->interactions = new ArrayCollection();
+        $this->media = new ArrayCollection();
+        $this->comments = new ArrayCollection();
+        $this->created_at = new \DateTime();
+    }
+
+    /**
+     * @return Collection<int, PostMedia>
+     */
+    public function getMedia(): Collection
+    {
+        return $this->media;
+    }
+
+    public function addMedia(PostMedia $media): static
+    {
+        if (!$this->media->contains($media)) {
+            $this->media->add($media);
+            $media->setPost($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMedia(PostMedia $media): static
+    {
+        if ($this->media->removeElement($media)) {
+            if ($media->getPost() === $this) {
+                $media->setPost(null);
+            }
+        }
+
+        return $this;
+    }
+
     public function getAuthor(): ?User
     {
         return $this->author;
@@ -43,12 +90,6 @@ class Post
         $this->author = $author;
 
         return $this;
-    }
-
-    public function __construct()
-    {
-        $this->interactions = new ArrayCollection();
-        $this->created_at = new \DateTime();
     }
 
     /**
@@ -75,6 +116,36 @@ class Post
             // Set the owning side to null (unless already changed)
             if ($interaction->getPost() === $this) {
                 $interaction->setPost(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Comment>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    public function addComment(Comment $comment): self
+    {
+        if (!$this->comments->contains($comment)) {
+            $this->comments[] = $comment;
+            $comment->setPost($this);
+        }
+
+        return $this;
+    }
+
+    public function removeComment(Comment $comment): self
+    {
+        if ($this->comments->removeElement($comment)) {
+            // set the owning side to null (unless already changed)
+            if ($comment->getPost() === $this) {
+                $comment->setPost(null);
             }
         }
 
@@ -140,15 +211,35 @@ class Post
     }
 
     public function getLikesCount(): int
-{
-    $count = 0;
-    foreach ($this->interactions as $interaction) {
-        if ($interaction->getType() === 'like') {
-            $count++;
+    {
+        $count = 0;
+        foreach ($this->interactions as $interaction) {
+            if ($interaction->getType() === 'like') {
+                $count++;
+            }
         }
+        return $count;
     }
-    return $count;
-}
 
+    public function isCensored(): bool
+    {
+        return $this->is_censored;
+    }
 
+    public function setIsCensored(bool $is_censored): self
+    {
+        $this->is_censored = $is_censored;
+        return $this;
+    }
+
+    /**
+     * Retourne le contenu du post, en tenant compte de la censure si applicable
+     */
+    public function getContentWithCensorship(): string
+    {
+        if ($this->is_censored) {
+            return "Ce message enfreint les conditions d'utilisation de la plateforme";
+        }
+        return $this->content;
+    }
 }

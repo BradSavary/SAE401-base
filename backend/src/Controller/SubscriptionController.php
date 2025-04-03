@@ -15,6 +15,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use \DateTime;
 use Symfony\Component\HttpFoundation\Request;
 use App\Service\PostService;
+use App\Repository\UserBlockRepository;
 
 class SubscriptionController extends AbstractController
 {
@@ -100,8 +101,12 @@ class SubscriptionController extends AbstractController
     }
 
     #[Route('/subscribe/{id}', name: 'subscribe_user', methods: ['POST'])]
-    public function subscribe(User $user, SubscriptionRepository $subscriptionRepo, EntityManagerInterface $em): JsonResponse
-    {
+    public function subscribe(
+        User $user, 
+        SubscriptionRepository $subscriptionRepo, 
+        EntityManagerInterface $em,
+        UserBlockRepository $userBlockRepository
+    ): JsonResponse {
         $currentUser = $this->getUser();
 
         if (!$currentUser) {
@@ -110,6 +115,16 @@ class SubscriptionController extends AbstractController
 
         if ($currentUser === $user) {
             return new JsonResponse(['error' => 'You cannot subscribe to yourself'], 400);
+        }
+
+        // Vérifier si l'utilisateur cible a bloqué l'utilisateur actuel
+        if ($userBlockRepository->isBlocked($user, $currentUser)) {
+            return new JsonResponse(['error' => 'You cannot subscribe to this user'], 403);
+        }
+
+        // Vérifier si l'utilisateur actuel a bloqué l'utilisateur cible
+        if ($userBlockRepository->isBlocked($currentUser, $user)) {
+            return new JsonResponse(['error' => 'You must unblock this user before subscribing'], 403);
         }
 
         $existingSubscription = $subscriptionRepo->findOneBy([

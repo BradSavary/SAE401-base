@@ -3,6 +3,8 @@ import { apiRequest } from '../lib/api-request';
 import Banner from '../ui/Profile/Banner';
 import Avatar from '../ui/Profile/Avatar';
 import PostList from '../components/Post/PostList';
+import { useNavigate } from 'react-router-dom';
+import Button from '../ui/Button/Button';
 
 interface User {
     user_id: number;
@@ -24,6 +26,7 @@ export default function Profile() {
     const [following, setFollowing] = useState<number>(0);
     const [activeTab, setActiveTab] = useState<'posts' | 'likes'>('posts'); // Onglet actif
     const user_id = localStorage.getItem('user_id');
+    const navigateTo = useNavigate();
 
     useEffect(() => {
         async function fetchUserProfile() {
@@ -61,52 +64,68 @@ export default function Profile() {
 
     return (
         <div className="flex flex-col text-custom bg-custom pb-15">
-            <Banner banner={user.banner || defaultBanner} className="w-full overflow-hidden max-h-35" />
-            <div className="flex flex-row justify-around text-center text-custom-light-gray pt-5">
-                <div className="flex flex-col items-center">
-                    <p className="font-bold text-xl text-custom-dark-gray">{followers}</p>
-                    <p className="text-sm text-custom-light-gray">Followers</p>
-                </div>
-                <div className="flex flex-col items-center">
-                    <p className="font-bold text-xl text-custom-dark-gray">{following}</p>
-                    <p className="text-sm text-custom-light-gray">Following</p>
-                </div>
+        <Banner banner={user.banner || defaultBanner} className="w-full overflow-hidden max-h-35" />
+        <div className="flex flex-row justify-around text-center text-custom-light-gray pt-5">
+            <div className="flex flex-col items-center">
+                <p className="font-bold text-xl text-custom-dark-gray">{followers}</p>
+                <p className="text-sm text-custom-light-gray">Followers</p>
             </div>
-            <div className="flex flex-row-reverse p-4 items-start">
-                <div className="h-full flex flex-col items-end justify-between gap-5">
-                    <Avatar avatar={user.avatar || defaultAvatar} className="w-20 aspect-square rounded-full overflow-hidden" />
-                </div>
-                <div className="flex flex-col w-full max-w-2xl gap-3">
-                    <div>
-                        <h1 className="font-bold text-4xl">{user.username}</h1>
-                        <h2 className="text-custom-light-gray">{user.email}</h2>
-                    </div>
-                    {user.bio && <p className="flex flex-col italic">{user.bio}</p>}
-                    <div>
-                        {user.place && <p className="min-w-fit">{user.place}</p>}
-                        {user.link && <a href={user.link}>{user.link}</a>}
-                    </div>
-                </div>
+            <div className="flex flex-col items-center">
+                <p className="font-bold text-xl text-custom-dark-gray">{following}</p>
+                <p className="text-sm text-custom-light-gray">Following</p>
             </div>
-            <div className="flex flex-row justify-around text-center text-custom-light-gray pt-5">
-                <p
-                    className={`cursor-pointer pb-5 w-half ${activeTab === 'posts' ? 'border-b-4 border-custom-light-gray' : ''}`}
-                    onClick={() => setActiveTab('posts')}
-                >
-                    Your posts
-                </p>
-                <p
-                    className={`cursor-pointer pb-5 w-half ${activeTab === 'likes' ? 'border-b-4 border-custom-light-gray' : ''}`}
-                    onClick={() => setActiveTab('likes')}
-                >
-                    Your likes
-                </p>
-            </div>
-            {activeTab === 'posts' ? (
-    <PostList endpoint={`/posts/user/${user_id}`} className="mb-5" />
-) : (
-    <PostList endpoint={`/posts/liked/${user_id}`} className="mb-5" />
-)}
         </div>
+        <div className="flex flex-row-reverse p-4 items-start">
+            <div className="w-full h-full flex flex-col items-end justify-between gap-5">
+                <Avatar avatar={user.avatar || defaultAvatar} className="w-20 aspect-square rounded-full overflow-hidden" />
+                <div className="flex flex-col gap-2">
+                    <Button
+                        variant="quaternary"
+                        onClick={() => navigateTo('/profile/edit')}
+                        className=""
+                    >
+                        Edit Profile
+                    </Button>
+                    <Button
+                        variant="quaternary"
+                        onClick={() => navigateTo('/blocked-users')}
+                        className=""
+                    >
+                        Blocked Users
+                    </Button>
+                </div>
+            </div>
+            <div className="flex flex-col w-full max-w-2xl gap-3">
+                <div>
+                    <h1 className="font-bold text-4xl">{user.username}</h1>
+                    <h2 className="text-custom-light-gray">{user.email}</h2>
+                </div>
+                {user.bio && <p className="flex flex-col italic">{user.bio}</p>}
+                <div>
+                    {user.place && <p className="min-w-fit">{user.place}</p>}
+                    {user.link && <a href={user.link}>{user.link}</a>}
+                </div>
+            </div>
+        </div>
+        <div className="flex flex-row justify-around text-center text-custom-light-gray pt-5">
+            <p
+                className={`cursor-pointer pb-5 w-half ${activeTab === 'posts' ? 'border-b-4 border-custom-light-gray' : ''}`}
+                onClick={() => setActiveTab('posts')}
+            >
+                Your posts
+            </p>
+            <p
+                className={`cursor-pointer pb-5 w-half ${activeTab === 'likes' ? 'border-b-4 border-custom-light-gray' : ''}`}
+                onClick={() => setActiveTab('likes')}
+            >
+                Your likes
+            </p>
+        </div>
+        {activeTab === 'posts' ? (
+            <PostList endpoint={`/posts/user/${user_id}`} className="mb-5" />
+        ) : (
+            <PostList endpoint={`/posts/liked/${user_id}`} className="mb-5" />
+        )}
+    </div>
     );
 }
