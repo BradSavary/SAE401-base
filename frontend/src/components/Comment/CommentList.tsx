@@ -15,6 +15,7 @@ interface CommentData {
   created_at: { date: string; timezone_type: number; timezone: string };
   user: CommentUserInfo;
   post_id: number;
+  is_censored: boolean;
 }
 
 interface FilteredCommentData extends CommentData {
@@ -116,6 +117,7 @@ function CommentList({ comments, onDeleteComment, onUpdateComment }: CommentList
             created_at={comment.created_at}
             user={comment.user}
             post_id={comment.post_id}
+            is_censored={comment.is_censored}
             onDelete={onDeleteComment}
             onUpdate={onUpdateComment}
           />

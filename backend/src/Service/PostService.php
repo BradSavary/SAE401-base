@@ -134,7 +134,7 @@ class PostService
         $createdAt = $post->getCreatedAt();
         $postDetails = [
             'id' => $post->getId(),
-            'content' => $post->getContent(),
+            'content' => $post->isCensored() ? $post->getContentWithCensorship() : $post->getContent(),
             'created_at' => [
                 'date' => $createdAt->format('Y-m-d H:i:s'),
                 'timezone_type' => $createdAt->getTimezone()->getLocation()['timezone_type'] ?? 3,
@@ -146,6 +146,7 @@ class PostService
             'likes' => $post->getLikesCount(),
             'userLiked' => $isLiked,
             'isBlocked' => $user->getIsBlocked(),
+            'is_censored' => $post->isCensored(),
             'media' => $mediaUrls,
         ];
     

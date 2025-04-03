@@ -124,7 +124,8 @@ class CommentService
                 'avatar' => $avatarUrl,
                 'is_blocked' => $user->getIsBlocked()
             ],
-            'post_id' => $comment->getPost()->getId()
+            'post_id' => $comment->getPost()->getId(),
+            'is_censored' => $comment->isCensored()
         ];
     }
 } 

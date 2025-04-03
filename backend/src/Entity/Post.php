@@ -40,6 +40,9 @@ class Post
     #[ORM\JoinColumn(nullable: false, name: 'author_id', referencedColumnName: 'id')]
     private $author;
 
+    #[ORM\Column(type: 'boolean')]
+    private bool $is_censored = false;
+
     public function __construct()
     {
         $this->interactions = new ArrayCollection();
@@ -216,5 +219,27 @@ class Post
             }
         }
         return $count;
+    }
+
+    public function isCensored(): bool
+    {
+        return $this->is_censored;
+    }
+
+    public function setIsCensored(bool $is_censored): self
+    {
+        $this->is_censored = $is_censored;
+        return $this;
+    }
+
+    /**
+     * Retourne le contenu du post, en tenant compte de la censure si applicable
+     */
+    public function getContentWithCensorship(): string
+    {
+        if ($this->is_censored) {
+            return "Ce message enfreint les conditions d'utilisation de la plateforme";
+        }
+        return $this->content;
     }
 }

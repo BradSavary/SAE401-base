@@ -52,4 +52,17 @@ class CommentRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Recherche des commentaires par leur contenu
+     */
+    public function findByContentLike(string $search): array
+    {
+        return $this->createQueryBuilder('c')
+            ->where('c.content LIKE :search')
+            ->setParameter('search', '%' . $search . '%')
+            ->orderBy('c.created_at', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 } 

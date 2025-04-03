@@ -43,6 +43,7 @@ interface PostData {
     userLiked?: boolean;
     media: MediaItem[];
     comments?: CommentData[];
+    is_censored: boolean;
 }
 
 interface PostProps {
@@ -219,7 +220,7 @@ function Post({ post, onDelete }: PostProps) {
     if (post.isBlocked) {
         return (
             <div className="border-b border-custom-gray p-4 text-custom">
-                <p className="text-custom-red text-center">
+                <p className="text-gray-500 text-center">
                     This content is unavailable because the user has been blocked by the administration.
                 </p>
             </div>
@@ -230,9 +231,40 @@ function Post({ post, onDelete }: PostProps) {
     if (post.isUserBlockedOrBlocking) {
         return (
             <div className="border-b border-custom-gray p-4 text-custom">
-                <p className="text-custom-red text-center">
+                <p className="text-gray-500 text-center">
                     This content is unavailable. The user has been blocked or has blocked you.
                 </p>
+            </div>
+        );
+    }
+
+    // Si le contenu a été censuré par l'administration
+    if (post.is_censored) {
+        return (
+            <div className="bg-custom-dark-gray p-4 rounded-lg mb-4">
+                <div className="flex items-center space-x-3 mb-3">
+                    <Link to={`/profile/${post.username}`}>
+                        <img
+                            src={post.avatar || '../../../public/default-avata.webp'}
+                            alt="User avatar"
+                            className="rounded-full w-10 h-10 object-cover"
+                        />
+                    </Link>
+                    <div className="flex flex-1 justify-between items-center">
+                        <div>
+                            <Link to={`/profile/${post.username}`} className="font-bold text-white hover:underline">
+                                {post.username}
+                            </Link>
+                            <p className="text-gray-400 text-sm">
+                                {new Date(post.created_at.date).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="text-red-500 font-italic p-4 bg-red-900/10 rounded">
+                    Ce message enfreint les conditions d'utilisation de la plateforme
+                </div>
             </div>
         );
     }

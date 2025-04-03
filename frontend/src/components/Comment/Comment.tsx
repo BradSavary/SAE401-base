@@ -18,11 +18,12 @@ interface CommentProps {
   created_at: { date: string; timezone_type: number; timezone: string };
   user: CommentUserInfo;
   post_id: number;
+  is_censored: boolean;
   onDelete: (commentId: number) => void;
   onUpdate: (commentId: number, newContent: string) => void;
 }
 
-function Comment({ id, content, created_at, user, post_id, onDelete, onUpdate }: CommentProps) {
+function Comment({ id, content, created_at, user, post_id, is_censored, onDelete, onUpdate }: CommentProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content);
@@ -88,6 +89,53 @@ function Comment({ id, content, created_at, user, post_id, onDelete, onUpdate }:
       setEditContent(content);
     }
   };
+
+  // Si l'utilisateur est bloqué
+  if (user.is_blocked) {
+    return (
+      <div className="flex flex-row w-full py-2 px-2 border-t border-custom-gray bg-custom bg-opacity-20">
+        <div className="text-gray-500 text-xs w-full text-center p-2">
+          Ce commentaire n'est pas disponible car l'utilisateur a été bloqué.
+        </div>
+      </div>
+    );
+  }
+
+  // Si le commentaire est censuré
+  if (is_censored) {
+    return (
+      <div className="flex flex-row w-full py-2 px-2 border-t border-custom-gray bg-custom bg-opacity-20">
+        <Link to={`/profile/${user.username}`} className="flex-shrink-0">
+          <img
+            src={user.avatar || '../../../public/default-avata.webp'}
+            className="rounded-full max-w-7 max-h-7 mt-1 ml-1 aspect-square"
+            alt="User avatar"
+          />
+        </Link>
+        <div className="pl-2 w-full relative">
+          <div className="flex justify-between items-start">
+            <div>
+              <Link to={`/profile/${user.username}`} className="font-semibold text-sm text-custom hover:underline mr-2">
+                {user.username}
+              </Link>
+              <span className="text-custom-light-gray text-xs">
+                {new Date(created_at.date).toLocaleString(undefined, { 
+                  year: '2-digit', 
+                  month: 'short', 
+                  day: 'numeric', 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </span>
+            </div>
+          </div>
+          <div className="text-red-500 text-xs break-words mt-1 p-2 bg-red-900/10 rounded">
+            Ce commentaire a été censuré car il enfreint les règles de la communauté.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-row w-full py-2 px-2 border-t border-custom-gray bg-custom bg-opacity-20">

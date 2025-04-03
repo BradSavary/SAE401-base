@@ -30,6 +30,9 @@ class Comment
     #[ORM\Column(type: 'datetime')]
     private \DateTimeInterface $created_at;
 
+    #[ORM\Column(type: 'boolean')]
+    private bool $is_censored = false;
+
     public function __construct()
     {
         $this->created_at = new \DateTime();
@@ -92,5 +95,27 @@ class Comment
         $this->created_at = $created_at;
 
         return $this;
+    }
+
+    public function isCensored(): bool
+    {
+        return $this->is_censored;
+    }
+
+    public function setIsCensored(bool $is_censored): self
+    {
+        $this->is_censored = $is_censored;
+        return $this;
+    }
+
+    /**
+     * Retourne le contenu du commentaire, en tenant compte de la censure si applicable
+     */
+    public function getContentWithCensorship(): string
+    {
+        if ($this->is_censored) {
+            return "Ce message enfreint les conditions d'utilisation de la plateforme";
+        }
+        return $this->content;
     }
 } 

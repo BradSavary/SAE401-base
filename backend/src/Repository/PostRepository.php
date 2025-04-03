@@ -41,7 +41,18 @@ public function findLikedPostsByUser(User $user): array
         ->getResult();
 }
 
-
+/**
+ * Recherche des posts par leur contenu
+ */
+public function findByContentLike(string $search): array
+{
+    return $this->createQueryBuilder('p')
+        ->where('p.content LIKE :search')
+        ->setParameter('search', '%' . $search . '%')
+        ->orderBy('p.created_at', 'DESC')
+        ->getQuery()
+        ->getResult();
+}
 
     //    /**
     //     * @return Post[] Returns an array of Post objects
