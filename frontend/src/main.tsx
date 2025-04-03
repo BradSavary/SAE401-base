@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { AuthProvider } from './context/AuthProvider';
 
 import Root from './routes/root';
 import { Welcome } from './routes/welcome';
@@ -15,6 +16,7 @@ import Profile from './routes/profile';
 import OtherProfile from './routes/otherProfile';
 
 import EditProfile from './routes/editProfile';
+import BlockedUsers from './routes/blockedUsers';
 
 import { Admin } from './routes/admin';
 import { EditUser } from './routes/editUser';
@@ -41,6 +43,10 @@ const router = createBrowserRouter([
       {
         path: 'profile/edit',
         element: <EditProfile />
+      },
+      {
+        path: 'blocked-users',
+        element: <BlockedUsers />
       },
       {
         path: 'profile/:userName',
@@ -79,9 +85,11 @@ const rootElement = document.querySelector('#root');
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <div className='h-screen bg-custom'>
-    <React.StrictMode>
-      <RouterProvider router={router} />
-    </React.StrictMode>
+      <React.StrictMode>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </React.StrictMode>
     </div>,
   );
 } else {

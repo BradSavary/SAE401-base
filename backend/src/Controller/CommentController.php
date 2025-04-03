@@ -16,6 +16,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use App\Repository\CommentRepository;
 use App\Repository\PostRepository;
+use App\Repository\UserBlockRepository;
 
 class CommentController extends AbstractController
 {
@@ -61,7 +62,9 @@ class CommentController extends AbstractController
         Request $request,
         SerializerInterface $serializer,
         ValidatorInterface $validator,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        PostRepository $postRepository,
+        UserBlockRepository $userBlockRepository
     ): JsonResponse {
         try {
             // Récupérer l'utilisateur courant
@@ -97,6 +100,23 @@ class CommentController extends AbstractController
                     $errorMessages[] = $error->getMessage();
                 }
                 return new JsonResponse(['errors' => $errorMessages], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Vérifier si le post existe
+            $post = $postRepository->find($payload->getPostId());
+            if (!$post) {
+                return new JsonResponse(['error' => 'Post non trouvé'], Response::HTTP_NOT_FOUND);
+            }
+
+            // Vérifier si l'utilisateur est bloqué par l'auteur du post
+            $postAuthor = $post->getUser();
+            if ($userBlockRepository->isBlocked($postAuthor, $currentUser)) {
+                return new JsonResponse(['error' => 'Vous ne pouvez pas commenter ce post'], Response::HTTP_FORBIDDEN);
+            }
+
+            // Vérifier si l'utilisateur a bloqué l'auteur du post
+            if ($userBlockRepository->isBlocked($currentUser, $postAuthor)) {
+                return new JsonResponse(['error' => 'Vous avez bloqué l\'auteur de ce post'], Response::HTTP_FORBIDDEN);
             }
 
             // Créer le commentaire

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { DotsIcon } from '../../ui/Icon/3dots';
 import { apiRequest } from '../../lib/api-request';
@@ -6,6 +6,9 @@ import EditPostModal from './EditPostModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import CommentList from "../Comment/CommentList";
 import CommentForm from "../Comment/CommentForm";
+import { useAuth } from '../../context/AuthProvider';
+import Avatar from '../../ui/Profile/Avatar';
+import Heart from '../../ui/Post/Heart';
 
 interface MediaItem {
     url: string;
@@ -35,7 +38,8 @@ interface PostData {
     created_at: { date: string; timezone_type: number; timezone: string };
     avatar: string;
     user_id: number;
-    isBlocked: boolean;
+    isBlocked?: boolean;  // Utilisateur bloqué par l'administration
+    isUserBlockedOrBlocking?: boolean;  // Utilisateur bloqué par l'utilisateur ou qui a bloqué l'utilisateur
     userLiked?: boolean;
     media: MediaItem[];
     comments?: CommentData[];
@@ -67,6 +71,7 @@ function Post({ post, onDelete }: PostProps) {
     const [showComments, setShowComments] = useState(false);
 
     const connectedUserId = Number(localStorage.getItem('user_id'));
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchLikes = async () => {
@@ -201,6 +206,37 @@ function Post({ post, onDelete }: PostProps) {
         setShowComments(true);
     };
 
+    const handleShowCommentForm = () => {
+        // Vérifier si l'utilisateur peut commenter (n'est pas bloqué et n'a pas bloqué l'auteur)
+        if (post.isUserBlockedOrBlocking) {
+            console.error("Vous ne pouvez pas commenter ce post car l'auteur vous a bloqué ou vous l'avez bloqué");
+            return;
+        }
+        setShowCommentForm(!showCommentForm);
+    };
+
+    // Si l'utilisateur est bloqué par l'administration
+    if (post.isBlocked) {
+        return (
+            <div className="border-b border-custom-gray p-4 text-custom">
+                <p className="text-custom-red text-center">
+                    This content is unavailable because the user has been blocked by the administration.
+                </p>
+            </div>
+        );
+    }
+
+    // Si l'utilisateur est bloqué par l'utilisateur courant ou a bloqué l'utilisateur courant
+    if (post.isUserBlockedOrBlocking) {
+        return (
+            <div className="border-b border-custom-gray p-4 text-custom">
+                <p className="text-custom-red text-center">
+                    This content is unavailable. The user has been blocked or has blocked you.
+                </p>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-custom-dark-gray p-4 rounded-lg mb-4">
             <div className="flex items-center space-x-3 mb-3">
@@ -319,15 +355,7 @@ function Post({ post, onDelete }: PostProps) {
                             onClick={handleLike} 
                             className="flex items-center gap-1 text-custom-light-gray text-sm hover:text-white"
                         >
-                            <svg 
-                                xmlns="http://www.w3.org/2000/svg" 
-                                className={`h-4 w-4 ${liked ? 'text-custom-red fill-current' : ''}`} 
-                                fill="none" 
-                                viewBox="0 0 24 24" 
-                                stroke="currentColor"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
+                            <Heart filled={liked} />
                             {likeCount === 0 && "J'aime"}
                             {likeCount === 1 && "1 J'aime"}
                             {likeCount > 1 && `${likeCount} J'aime`}
@@ -339,7 +367,7 @@ function Post({ post, onDelete }: PostProps) {
             {showComments && (
                 <div className="mt-2">
                     <button
-                        onClick={() => setShowCommentForm(true)}
+                        onClick={handleShowCommentForm}
                         className="text-custom-blue text-sm hover:underline mb-2 flex items-center gap-1 cursor-pointer"
                     >
                         Ajouter un commentaire

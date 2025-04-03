@@ -78,13 +78,22 @@ export default function Profile() {
         <div className="flex flex-row-reverse p-4 items-start">
             <div className="w-full h-full flex flex-col items-end justify-between gap-5">
                 <Avatar avatar={user.avatar || defaultAvatar} className="w-20 aspect-square rounded-full overflow-hidden" />
-                <Button
-                    variant="quaternary"
-                    onClick={() => navigateTo('/profile/edit')}
-                    className=""
-                >
-                    Edit Profile
-                </Button>
+                <div className="flex flex-col gap-2">
+                    <Button
+                        variant="quaternary"
+                        onClick={() => navigateTo('/profile/edit')}
+                        className=""
+                    >
+                        Edit Profile
+                    </Button>
+                    <Button
+                        variant="quaternary"
+                        onClick={() => navigateTo('/blocked-users')}
+                        className=""
+                    >
+                        Blocked Users
+                    </Button>
+                </div>
             </div>
             <div className="flex flex-col w-full max-w-2xl gap-3">
                 <div>

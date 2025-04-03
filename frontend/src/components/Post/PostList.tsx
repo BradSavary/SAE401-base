@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { apiRequest } from '../../lib/api-request';
 import Post from './Post';
+import { enrichPostsWithBlockingInfo } from '../../lib/block-service';
 
 interface MediaItem {
     url: string;
@@ -31,9 +32,15 @@ interface PostData {
     avatar: string;  // Changed from string | null to string to match Post.tsx
     user_id: number;
     userLiked?: boolean;  // Made optional
-    isBlocked: boolean;
+    isBlocked?: boolean;  // Indique si l'utilisateur est bloqué par l'administration
+    isUserBlockedOrBlocking?: boolean; // Indique si l'utilisateur est bloqué par l'utilisateur ou a bloqué l'utilisateur
     media: MediaItem[];
     comments?: CommentData[];
+    author: {
+        user_id: number;
+        username: string;
+        avatar: string | null;
+    };
 }
 
 interface PostListProps {
@@ -47,6 +54,7 @@ function PostList({ endpoint, className }: PostListProps) {
     const [page, setPage] = useState<number>(1); // Page actuelle
     const [hasMore, setHasMore] = useState<boolean>(true); // Indique s'il reste des posts à charger
     const containerRef = useRef<HTMLDivElement | null>(null); // Référence pour le conteneur défilable
+    const loadedPostIdsRef = useRef(new Set<number>()); // Référence pour suivre les IDs des posts déjà chargés
 
     const fetchPosts = async (pageToLoad: number) => {
         if (loading || !hasMore) return; // Empêche les requêtes multiples ou inutiles
@@ -56,21 +64,31 @@ function PostList({ endpoint, className }: PostListProps) {
             const response = await apiRequest(`${endpoint}?page=${pageToLoad}`);
             if (response.ok) {
                 const data = await response.json();
-                const newPosts = data.posts || [];
+                let newPosts = data.posts || [];
     
-                // Filtrer les posts déjà existants
-                setPosts((prevPosts) => {
-                    const existingIds = new Set(prevPosts.map((post) => post.id));
-                    // Ensure avatar is never null for type compatibility
-                    const filteredPosts: PostData[] = newPosts
-                        .filter((post: any) => !existingIds.has(post.id))
-                        .map((post: any) => ({
-                            ...post,
-                            avatar: post.avatar || '../../../public/default-avata.webp',
-                        }));
-                    return [...prevPosts, ...filteredPosts];
+                // Filtrer les posts déjà existants en utilisant notre Set de référence
+                const filteredPosts: PostData[] = newPosts
+                    .filter((post: any) => !loadedPostIdsRef.current.has(post.id))
+                    .map((post: any) => ({
+                        ...post,
+                        avatar: post.avatar || '../../../public/default-avata.webp',
+                        // Ajouter les champs pour la compatibilité avec enrichPostsWithBlockingInfo
+                        author: {
+                            user_id: post.user_id,
+                            username: post.username,
+                            avatar: post.avatar || '../../../public/default-avata.webp'
+                        }
+                    }));
+                
+                // Mettre à jour notre Set de référence avec les nouveaux IDs
+                filteredPosts.forEach(post => {
+                    loadedPostIdsRef.current.add(post.id);
                 });
-    
+                
+                // Enrichir les posts avec les informations de blocage
+                const enrichedPosts = await enrichPostsWithBlockingInfo(filteredPosts);
+                
+                setPosts((prevPosts) => [...prevPosts, ...enrichedPosts]);
                 setHasMore(newPosts.length > 0); // Vérifie s'il reste des posts à charger
             } else {
                 console.error('Failed to fetch posts');
@@ -87,6 +105,7 @@ function PostList({ endpoint, className }: PostListProps) {
         setPosts([]); // Réinitialiser les posts
         setPage(1); // Réinitialiser la page
         setHasMore(true); // Réinitialiser hasMore
+        loadedPostIdsRef.current.clear(); // Vider la liste des posts déjà chargés
         fetchPosts(1); // Charger la première page du nouvel endpoint
     }, [endpoint]);
 
@@ -132,13 +151,15 @@ function PostList({ endpoint, className }: PostListProps) {
 
     const handleDeletePost = (postId: number) => {
         setPosts((prevPosts) => prevPosts.filter((p) => p.id !== postId));
+        // Supprimer aussi de notre Set de référence
+        loadedPostIdsRef.current.delete(postId);
     };
 
     return (
         <div ref={containerRef} className={`overflow-y-auto scrollbar-thin ${className || ''}`} style={{ maxHeight: '80vh' }}>
-            {posts.map((post) => (
+            {posts.map((post, index) => (
                 <Post
-                    key={post.id}
+                    key={`${post.id}-${index}`} // Utiliser une clé composite pour éviter les doublons
                     post={post}
                     onDelete={handleDeletePost}
                 />
