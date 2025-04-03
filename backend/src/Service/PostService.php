@@ -147,6 +147,7 @@ class PostService
             'userLiked' => $isLiked,
             'isBlocked' => $user->getIsBlocked(),
             'is_censored' => $post->isCensored(),
+            'is_read_only' => $user->getIsReadOnly(),
             'media' => $mediaUrls,
         ];
     

@@ -75,6 +75,9 @@ private Collection $subscribers;
     #[ORM\Column(type: 'boolean')]
     private bool $isBlocked = false;
 
+    #[ORM\Column(type: 'boolean')]
+    private bool $isReadOnly = false;
+
     /**
      * @var Collection<int, UserBlock> Les utilisateurs que cet utilisateur a bloqués
      */
@@ -329,6 +332,17 @@ private Collection $subscribers;
     public function setIsBlocked(bool $isBlocked): static
     {
         $this->isBlocked = $isBlocked;
+        return $this;
+    }
+
+    public function getIsReadOnly(): bool
+    {
+        return $this->isReadOnly;
+    }
+    
+    public function setIsReadOnly(bool $isReadOnly): static
+    {
+        $this->isReadOnly = $isReadOnly;
         return $this;
     }
 

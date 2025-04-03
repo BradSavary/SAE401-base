@@ -119,6 +119,11 @@ class CommentController extends AbstractController
                 return new JsonResponse(['error' => 'Vous avez bloqué l\'auteur de ce post'], Response::HTTP_FORBIDDEN);
             }
 
+            // Vérifier si l'auteur du post a activé le mode lecture seule
+            if ($postAuthor->getIsReadOnly()) {
+                return new JsonResponse(['error' => 'Cet utilisateur a activé le mode lecture seule, les commentaires ne sont pas autorisés'], Response::HTTP_FORBIDDEN);
+            }
+
             // Créer le commentaire
             $comment = $this->commentService->create($payload);
             $baseUrl = $this->getParameter('base_url');

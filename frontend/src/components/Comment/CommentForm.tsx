@@ -42,7 +42,11 @@ function CommentForm({ postId, onCommentAdded, onCancel }: CommentFormProps) {
         if (onCancel) onCancel();
       } else {
         const data = await response.json();
-        setError(data.error || 'Erreur lors de l\'ajout du commentaire');
+        if (data.error && data.error.includes('mode lecture seule')) {
+          setError('This user has enabled read-only mode for their content');
+        } else {
+          setError(data.error || 'Error adding comment');
+        }
       }
     } catch (error) {
       console.error('Error adding comment:', error);

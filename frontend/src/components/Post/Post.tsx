@@ -29,6 +29,7 @@ interface CommentData {
     created_at: { date: string; timezone_type: number; timezone: string };
     user: CommentUserInfo;
     post_id: number;
+    is_censored: boolean;
 }
 
 interface PostData {
@@ -44,6 +45,7 @@ interface PostData {
     media: MediaItem[];
     comments?: CommentData[];
     is_censored: boolean;
+    is_read_only?: boolean; // Indication si l'utilisateur est en mode lecture seule
 }
 
 interface PostProps {
@@ -213,6 +215,13 @@ function Post({ post, onDelete }: PostProps) {
             console.error("Vous ne pouvez pas commenter ce post car l'auteur vous a bloqué ou vous l'avez bloqué");
             return;
         }
+        
+        // Vérifier si le post est en mode lecture seule
+        if (post.is_read_only) {
+            console.error("Vous ne pouvez pas commenter ce post car l'auteur a activé le mode lecture seule");
+            return;
+        }
+        
         setShowCommentForm(!showCommentForm);
     };
 
@@ -398,14 +407,20 @@ function Post({ post, onDelete }: PostProps) {
             
             {showComments && (
                 <div className="mt-2">
-                    <button
-                        onClick={handleShowCommentForm}
-                        className="text-custom-blue text-sm hover:underline mb-2 flex items-center gap-1 cursor-pointer"
-                    >
-                        Ajouter un commentaire
-                    </button>
+                    {!post.is_read_only ? (
+                        <button
+                            onClick={handleShowCommentForm}
+                            className="text-custom-blue text-sm hover:underline mb-2 flex items-center gap-1 cursor-pointer"
+                        >
+                            Ajouter un commentaire
+                        </button>
+                    ) : (
+                        <div className="text-custom-light-gray text-sm italic mb-2">
+                            Comments are disabled for this post
+                        </div>
+                    )}
                     
-                    {showCommentForm && (
+                    {showCommentForm && !post.is_read_only && (
                         <CommentForm 
                             postId={post.id} 
                             onCommentAdded={handleAddComment} 

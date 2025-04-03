@@ -442,4 +442,48 @@ public function unblockUser(int $id, EntityManagerInterface $entityManager): Jso
     return new JsonResponse(['message' => 'User has been unblocked'], JsonResponse::HTTP_OK);
 }
 
+#[Route('/user/toggle-readonly/{id}', name: 'toggle_readonly', methods: ['POST'])]
+#[IsGranted('ROLE_USER')]
+public function toggleReadOnly(int $id, Request $request, EntityManagerInterface $entityManager): JsonResponse
+{
+    $user = $entityManager->getRepository(User::class)->find($id);
+    
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+    }
+    
+    // Vérifier si l'utilisateur essaie de modifier son propre compte
+    /** @var User $currentUser */
+    $currentUser = $this->getUser();
+    if ($currentUser->getId() !== $user->getId() && !$this->isGranted('ROLE_ADMIN')) {
+        return new JsonResponse(['error' => 'You can only toggle read-only mode for your own account'], JsonResponse::HTTP_FORBIDDEN);
+    }
+    
+    // Récupérer l'état demandé si fourni, sinon basculer l'état actuel
+    $data = json_decode($request->getContent(), true);
+    $readOnlyState = $data['is_read_only'] ?? !$user->getIsReadOnly();
+    
+    $user->setIsReadOnly($readOnlyState);
+    $entityManager->flush();
+    
+    return new JsonResponse([
+        'message' => 'Read-only mode has been ' . ($readOnlyState ? 'enabled' : 'disabled'),
+        'is_read_only' => $user->getIsReadOnly()
+    ], JsonResponse::HTTP_OK);
+}
+
+#[Route('/user/is-readonly/{id}', name: 'check_readonly', methods: ['GET'])]
+public function isReadOnly(int $id, EntityManagerInterface $entityManager): JsonResponse
+{
+    $user = $entityManager->getRepository(User::class)->find($id);
+    
+    if (!$user) {
+        return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+    }
+    
+    return new JsonResponse([
+        'is_read_only' => $user->getIsReadOnly()
+    ], JsonResponse::HTTP_OK);
+}
+
 };

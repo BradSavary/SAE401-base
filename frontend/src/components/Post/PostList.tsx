@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { apiRequest } from '../../lib/api-request';
 import Post from './Post';
 import { enrichPostsWithBlockingInfo } from '../../lib/block-service';
+import { enrichPostsWithReadOnlyInfo } from '../../lib/post-service';
 
 interface MediaItem {
     url: string;
@@ -41,6 +42,8 @@ interface PostData {
         username: string;
         avatar: string | null;
     };
+    is_censored: boolean;  // Ajout de ce champ requis
+    is_read_only?: boolean; // Champ optionnel pour le mode lecture seule
 }
 
 interface PostListProps {
@@ -86,7 +89,10 @@ function PostList({ endpoint, className }: PostListProps) {
                 });
                 
                 // Enrichir les posts avec les informations de blocage
-                const enrichedPosts = await enrichPostsWithBlockingInfo(filteredPosts);
+                const postsWithBlockingInfo = await enrichPostsWithBlockingInfo(filteredPosts);
+                
+                // Enrichir les posts avec les informations de mode lecture seule
+                const enrichedPosts = await enrichPostsWithReadOnlyInfo(postsWithBlockingInfo);
                 
                 setPosts((prevPosts) => [...prevPosts, ...enrichedPosts]);
                 setHasMore(newPosts.length > 0); // Vérifie s'il reste des posts à charger

@@ -42,11 +42,23 @@ class SubscriptionController extends AbstractController
 
         $subscriptions = $subscriptionRepo->findBy(['subscriber' => $user]);
 
-        if (!$subscriptions) {
-            return new JsonResponse(['error' => 'No subscriptions found'], 404);
+        if (empty($subscriptions)) {
+            return new JsonResponse([
+                'posts' => [],
+                'previous_page' => null,
+                'next_page' => null,
+            ]);
         }
 
         $subscribedUserIds = array_map(fn($sub) => $sub->getSubscribedTo()->getId(), $subscriptions);
+        
+        if (empty($subscribedUserIds)) {
+            return new JsonResponse([
+                'posts' => [],
+                'previous_page' => null,
+                'next_page' => null,
+            ]);
+        }
 
         $page = (int) $request->query->get('page', 1);
         $limit = 15;
@@ -117,12 +129,10 @@ class SubscriptionController extends AbstractController
             return new JsonResponse(['error' => 'You cannot subscribe to yourself'], 400);
         }
 
-        // Vérifier si l'utilisateur cible a bloqué l'utilisateur actuel
         if ($userBlockRepository->isBlocked($user, $currentUser)) {
             return new JsonResponse(['error' => 'You cannot subscribe to this user'], 403);
         }
 
-        // Vérifier si l'utilisateur actuel a bloqué l'utilisateur cible
         if ($userBlockRepository->isBlocked($currentUser, $user)) {
             return new JsonResponse(['error' => 'You must unblock this user before subscribing'], 403);
         }
@@ -147,37 +157,37 @@ class SubscriptionController extends AbstractController
     }
 
     #[Route('/subscriptions/check/{id}', name: 'check_subscription', methods: ['GET'])]
-public function checkSubscription(int $id, SubscriptionRepository $subscriptionRepo): JsonResponse
-{
-    $currentUser = $this->getUser();
+    public function checkSubscription(int $id, SubscriptionRepository $subscriptionRepo): JsonResponse
+    {
+        $currentUser = $this->getUser();
 
-    if (!$currentUser) {
-        return new JsonResponse(['error' => 'Unauthorized'], 401);
+        if (!$currentUser) {
+            return new JsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $subscription = $subscriptionRepo->findOneBy([
+            'subscriber' => $currentUser,
+            'subscribedTo' => $id,
+        ]);
+
+        return new JsonResponse(['isSubscribed' => $subscription !== null]);
     }
 
-    $subscription = $subscriptionRepo->findOneBy([
-        'subscriber' => $currentUser,
-        'subscribedTo' => $id,
-    ]);
+    #[Route('/subscriptions/count/{id}', name: 'subscriptions_count', methods: ['GET'])]
+    public function getSubscriptionsCount(int $id, SubscriptionRepository $subscriptionRepo, UserRepository $userRepo): JsonResponse
+    {
+        $user = $userRepo->find($id);
 
-    return new JsonResponse(['isSubscribed' => $subscription !== null]);
-}
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not found'], 404);
+        }
 
-#[Route('/subscriptions/count/{id}', name: 'subscriptions_count', methods: ['GET'])]
-public function getSubscriptionsCount(int $id, SubscriptionRepository $subscriptionRepo, UserRepository $userRepo): JsonResponse
-{
-    $user = $userRepo->find($id);
+        $followersCount = $subscriptionRepo->count(['subscribedTo' => $user]);
+        $followingCount = $subscriptionRepo->count(['subscriber' => $user]);
 
-    if (!$user) {
-        return new JsonResponse(['error' => 'User not found'], 404);
+        return new JsonResponse([
+            'followers' => $followersCount,
+            'following' => $followingCount,
+        ]);
     }
-
-    $followersCount = $subscriptionRepo->count(['subscribedTo' => $user]);
-    $followingCount = $subscriptionRepo->count(['subscriber' => $user]);
-
-    return new JsonResponse([
-        'followers' => $followersCount,
-        'following' => $followingCount,
-    ]);
-}
 }

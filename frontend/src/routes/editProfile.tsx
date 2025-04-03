@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../lib/api-request';
 import { Link } from 'react-router-dom';
 import { ArrowIcon } from '../ui/Icon/arrow';
+import { checkReadOnlyStatus, toggleReadOnlyMode } from '../lib/user-settings-service';
+import ToggleSwitch from '../ui/Form/ToggleSwitch';
 
 interface User {
     user_id: number;
@@ -30,6 +32,7 @@ export default function EditProfile() {
     const [bio, setBio] = useState('');
     const [place, setPlace] = useState('');
     const [link, setLink] = useState('');
+    const [isReadOnly, setIsReadOnly] = useState(false);
     const navigate = useNavigate();
     const user_id = localStorage.getItem('user_id');
 
@@ -43,10 +46,30 @@ export default function EditProfile() {
                 setBio(userInfo.bio || '');
                 setPlace(userInfo.place || '');
                 setLink(userInfo.link || '');
+                
+                // Récupérer l'état du mode lecture seule
+                try {
+                    const readOnlyStatus = await checkReadOnlyStatus(parseInt(user_id));
+                    setIsReadOnly(readOnlyStatus);
+                } catch (error) {
+                    console.error('Error fetching read-only status:', error);
+                }
             }
         }
         fetchUserProfile();
     }, [user_id]);
+
+    const handleToggleReadOnly = async () => {
+        try {
+            if (user_id) {
+                const newStatus = await toggleReadOnlyMode(parseInt(user_id), !isReadOnly);
+                setIsReadOnly(newStatus);
+            }
+        } catch (error) {
+            console.error('Error toggling read-only mode:', error);
+            alert('Failed to update read-only mode. Please try again.');
+        }
+    };
 
     const handleSave = async () => {
         try {
@@ -138,6 +161,15 @@ export default function EditProfile() {
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
                 />
+                
+                {/* Toggle for Read-Only Mode */}
+                <ToggleSwitch 
+                    checked={isReadOnly}
+                    onChange={handleToggleReadOnly}
+                    label="Read-Only Mode"
+                    description="When enabled, no one can comment on your posts"
+                />
+                
                 <Button variant="secondary" onClick={handleSave}>Save</Button>
             </div>
         </div>
