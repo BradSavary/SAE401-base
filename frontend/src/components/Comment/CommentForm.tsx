@@ -79,7 +79,7 @@ function CommentForm({ postId, onCommentAdded, onCancel }: CommentFormProps) {
       <div className="flex justify-end gap-2 mt-2">
         {onCancel && (
           <button
-            className="px-2 py-1 text-xs bg-custom-inverse bg-opacity-30 rounded-md hover:bg-opacity-50 text-custom-inverse"
+            className="px-2 py-1 text-xs bg-custom-inverse bg-opacity-30 rounded-md hover:bg-opacity-50 text-custom-inverse cursor-pointer"
             onClick={onCancel}
             disabled={isSubmitting}
           >

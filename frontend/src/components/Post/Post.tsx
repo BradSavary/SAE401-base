@@ -236,18 +236,18 @@ function Post({ post, onDelete }: PostProps) {
                                                 setShowPopup(false);
                                                 setShowEditModal(true);
                                             }}
-                                            className="block w-full text-left px-4 py-2 text-sm text-custom-blue hover:bg-custom-dark-gray hover:text-white"
+                                            className="block w-full text-left px-4 py-2 text-sm text-custom-blue hover:bg-custom-dark-gray cursor-pointer"
                                         >
-                                            Modifier le post
+                                            Edit
                                         </button>
                                         <button
                                             onClick={() => {
                                                 setShowPopup(false);
                                                 setShowDeleteModal(true);
                                             }}
-                                            className="block w-full text-left px-4 py-2 text-sm text-custom-red bg-custom-inverse"
+                                            className="block w-full text-left px-4 py-2 text-sm text-custom-red bg-custom-inverse cursor-pointer"
                                         >
-                                            Supprimer le post
+                                            Delete
                                         </button>
                                     </>
                                 ) : (
@@ -261,7 +261,7 @@ function Post({ post, onDelete }: PostProps) {
                 </div>
             </div>
 
-            <div className="text-custom-light-gray text-sm whitespace-pre-wrap">{post.content}</div>
+            <div className={`text-sm whitespace-pre-wrap ${post.isBlocked ? 'text-custom-red' : 'text-custom-light-gray'}`}>{post.content}</div>
             
             {post.media && post.media.length > 0 && (
                 <div className="mt-4 relative">
