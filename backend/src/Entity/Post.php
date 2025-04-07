@@ -21,6 +21,12 @@ class Post
     #[ORM\OneToMany(mappedBy: 'post', targetEntity: Comment::class, cascade: ['remove'], orphanRemoval: true)]
     private Collection $comments;
 
+    #[ORM\ManyToMany(targetEntity: Hashtag::class, inversedBy: 'posts')]
+    private Collection $hashtags;
+
+    #[ORM\OneToMany(mappedBy: 'post', targetEntity: Mention::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $mentions;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
@@ -48,6 +54,8 @@ class Post
         $this->interactions = new ArrayCollection();
         $this->media = new ArrayCollection();
         $this->comments = new ArrayCollection();
+        $this->hashtags = new ArrayCollection();
+        $this->mentions = new ArrayCollection();
         $this->created_at = new \DateTime();
     }
 
@@ -146,6 +154,60 @@ class Post
             // set the owning side to null (unless already changed)
             if ($comment->getPost() === $this) {
                 $comment->setPost(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Hashtag>
+     */
+    public function getHashtags(): Collection
+    {
+        return $this->hashtags;
+    }
+
+    public function addHashtag(Hashtag $hashtag): static
+    {
+        if (!$this->hashtags->contains($hashtag)) {
+            $this->hashtags->add($hashtag);
+        }
+
+        return $this;
+    }
+
+    public function removeHashtag(Hashtag $hashtag): static
+    {
+        $this->hashtags->removeElement($hashtag);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Mention>
+     */
+    public function getMentions(): Collection
+    {
+        return $this->mentions;
+    }
+
+    public function addMention(Mention $mention): static
+    {
+        if (!$this->mentions->contains($mention)) {
+            $this->mentions->add($mention);
+            $mention->setPost($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMention(Mention $mention): static
+    {
+        if ($this->mentions->removeElement($mention)) {
+            // set the owning side to null (unless already changed)
+            if ($mention->getPost() === $this) {
+                $mention->setPost(null);
             }
         }
 

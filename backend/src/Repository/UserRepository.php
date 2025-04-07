@@ -57,4 +57,42 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+    public function findBySearchTerm(string $term, int $limit = 10, int $offset = 0): array
+    {
+        return $this->createQueryBuilder('u')
+            ->where('u.username LIKE :term')
+            ->orWhere('u.email LIKE :term')
+            ->setParameter('term', '%' . $term . '%')
+            ->orderBy('u.username', 'ASC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function countBySearchTerm(string $term): int
+    {
+        return (int) $this->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->where('u.username LIKE :term')
+            ->orWhere('u.email LIKE :term')
+            ->setParameter('term', '%' . $term . '%')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Trouve tous les utilisateurs mentionnés dans les posts
+     */
+    public function findMentionedUsers(int $limit = 10): array
+    {
+        return $this->createQueryBuilder('u')
+            ->join('App\Entity\Mention', 'm', 'WITH', 'm.mentionedUser = u')
+            ->groupBy('u.id')
+            ->orderBy('COUNT(m.id)', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 }

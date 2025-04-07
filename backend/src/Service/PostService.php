@@ -8,6 +8,7 @@ use App\Repository\UserRepository;
 use App\Entity\Post;
 use App\Entity\User;
 use App\Entity\PostMedia;
+use App\Service\HashtagMentionService;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 
@@ -15,11 +16,16 @@ class PostService
 {
     private EntityManagerInterface $entityManager;
     private UserRepository $userRepository;
+    private HashtagMentionService $hashtagMentionService;
 
-    public function __construct(EntityManagerInterface $entityManager, UserRepository $userRepository)
-    {
+    public function __construct(
+        EntityManagerInterface $entityManager,
+        UserRepository $userRepository,
+        HashtagMentionService $hashtagMentionService
+    ) {
         $this->entityManager = $entityManager;
         $this->userRepository = $userRepository;
+        $this->hashtagMentionService = $hashtagMentionService;
     }
 
     public function create(CreatePostPayload $payload): void
@@ -93,8 +99,12 @@ class PostService
                     }
                 }
             }
-        
+            
             $this->entityManager->persist($post);
+            $this->entityManager->flush();
+            
+            // Traiter les hashtags et mentions après la sauvegarde du post
+            $this->hashtagMentionService->processHashtagsAndMentions($post);
             $this->entityManager->flush();
         } catch (\Exception $e) {
             throw new \RuntimeException('Error in PostService::create: ' . $e->getMessage(), 0, $e);
@@ -130,11 +140,32 @@ class PostService
                 'type' => $media->getType()
             ];
         }
+        
+        // Formatage des hashtags
+        $hashtags = [];
+        foreach ($post->getHashtags() as $hashtag) {
+            $hashtags[] = [
+                'id' => $hashtag->getId(),
+                'name' => $hashtag->getName()
+            ];
+        }
+        
+        // Formatage des mentions
+        $mentions = [];
+        foreach ($post->getMentions() as $mention) {
+            $mentionedUser = $mention->getMentionedUser();
+            $mentions[] = [
+                'id' => $mention->getId(),
+                'user_id' => $mentionedUser->getId(),
+                'username' => $mentionedUser->getUsername()
+            ];
+        }
     
         $createdAt = $post->getCreatedAt();
         $postDetails = [
             'id' => $post->getId(),
             'content' => $post->isCensored() ? $post->getContentWithCensorship() : $post->getContent(),
+            'formatted_content' => $this->hashtagMentionService->formatTextWithLinks($post->getContent()),
             'created_at' => [
                 'date' => $createdAt->format('Y-m-d H:i:s'),
                 'timezone_type' => $createdAt->getTimezone()->getLocation()['timezone_type'] ?? 3,
@@ -149,49 +180,70 @@ class PostService
             'is_censored' => $post->isCensored(),
             'is_read_only' => $user->getIsReadOnly(),
             'media' => $mediaUrls,
+            'hashtags' => $hashtags,
+            'mentions' => $mentions
         ];
     
         if ($user->getIsBlocked()) {
             $postDetails['content'] = 'This account has been blocked for violating the terms of use.';
+            $postDetails['formatted_content'] = 'This account has been blocked for violating the terms of use.';
             $postDetails['likes'] = 0;
             $postDetails['userLiked'] = false;
+            $postDetails['hashtags'] = [];
+            $postDetails['mentions'] = [];
         }
     
         return $postDetails;
     }
 
-public function paginatePosts(array $posts, int $page, int $limit): array
-{
-    $offset = ($page - 1) * $limit;
-    $paginatedPosts = array_slice($posts, $offset, $limit);
+    public function paginatePosts(array $posts, int $page, int $limit): array
+    {
+        $offset = ($page - 1) * $limit;
+        $paginatedPosts = array_slice($posts, $offset, $limit);
 
-    $totalPostsCount = count($posts);
-    $previousPage = $page > 1 ? $page - 1 : null;
-    $nextPage = ($offset + $limit) < $totalPostsCount ? $page + 1 : null;
+        $totalPostsCount = count($posts);
+        $previousPage = $page > 1 ? $page - 1 : null;
+        $nextPage = ($offset + $limit) < $totalPostsCount ? $page + 1 : null;
 
-    return [
-        'posts' => $paginatedPosts,
-        'previous_page' => $previousPage,
-        'next_page' => $nextPage,
-    ];
-}
+        return [
+            'posts' => $paginatedPosts,
+            'previous_page' => $previousPage,
+            'next_page' => $nextPage,
+        ];
+    }
 
-/**
- * Convertit le code d'erreur d'upload en message lisible
- */
-private function getUploadErrorMessage(int $errorCode): string
-{
-    return match($errorCode) {
-        UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
-        UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
-        UPLOAD_ERR_PARTIAL => 'The uploaded file was only partially uploaded',
-        UPLOAD_ERR_NO_FILE => 'No file was uploaded',
-        UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
-        UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
-        UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload',
-        UPLOAD_ERR_OK => 'There is no error, the file uploaded with success',
-        default => 'Unknown upload error',
-    };
-}
+    /**
+     * Met à jour un post existant et traite les hashtags et mentions
+     */
+    public function update(Post $post, string $newContent): void
+    {
+        try {
+            $post->setContent($newContent);
+            $this->entityManager->flush();
+            
+            // Traiter les hashtags et mentions après la mise à jour du contenu
+            $this->hashtagMentionService->processHashtagsAndMentions($post);
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            throw new \RuntimeException('Error in PostService::update: ' . $e->getMessage(), 0, $e);
+        }
+    }
 
+    /**
+     * Convertit le code d'erreur d'upload en message lisible
+     */
+    private function getUploadErrorMessage(int $errorCode): string
+    {
+        return match($errorCode) {
+            UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+            UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
+            UPLOAD_ERR_PARTIAL => 'The uploaded file was only partially uploaded',
+            UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+            UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+            UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload',
+            UPLOAD_ERR_OK => 'There is no error, the file uploaded with success',
+            default => 'Unknown upload error',
+        };
+    }
 }

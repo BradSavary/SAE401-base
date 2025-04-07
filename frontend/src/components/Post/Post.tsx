@@ -32,10 +32,22 @@ interface CommentData {
     is_censored: boolean;
 }
 
+interface HashtagData {
+    id: number;
+    name: string;
+}
+
+interface MentionData {
+    id: number;
+    user_id: number;
+    username: string;
+}
+
 interface PostData {
     id: number;
     username: string;
     content: string;
+    formatted_content?: string; // Contenu formaté avec les hashtags et mentions en HTML
     created_at: { date: string; timezone_type: number; timezone: string };
     avatar: string;
     user_id: number;
@@ -46,6 +58,8 @@ interface PostData {
     comments?: CommentData[];
     is_censored: boolean;
     is_read_only?: boolean; // Indication si l'utilisateur est en mode lecture seule
+    hashtags?: HashtagData[]; // Hashtags associés au post
+    mentions?: MentionData[]; // Mentions d'utilisateurs dans le post
 }
 
 interface PostProps {
@@ -225,11 +239,42 @@ function Post({ post, onDelete }: PostProps) {
         setShowCommentForm(!showCommentForm);
     };
 
+    // Si le contenu indique un blocage par l'administration (text spécifique)
+    if (post.content === 'This account has been blocked for violating the terms of use.') {
+        return (
+            <div className="bg-custom-dark-gray p-4 rounded-lg mb-4">
+                <div className="flex items-center space-x-3 mb-3">
+                    <Link to={`/profile/${post.username}`}>
+                        <img
+                            src={post.avatar || '../../../public/default-avata.webp'}
+                            alt="User avatar"
+                            className="rounded-full w-10 h-10 object-cover"
+                        />
+                    </Link>
+                    <div className="flex flex-1 justify-between items-center">
+                        <div>
+                            <Link to={`/profile/${post.username}`} className="font-bold text-custom-red hover:underline">
+                                {post.username}
+                            </Link>
+                            <p className="text-gray-400 text-sm">
+                                {new Date(post.created_at.date).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="text-custom-red font-italic p-4 bg-red-900/10 rounded">
+                    {post.content}
+                </div>
+            </div>
+        );
+    }
+
     // Si l'utilisateur est bloqué par l'administration
     if (post.isBlocked) {
         return (
             <div className="border-b border-custom-gray p-4 text-custom">
-                <p className="text-gray-500 text-center">
+                <p className="text-custom-red text-center">
                     This content is unavailable because the user has been blocked by the administration.
                 </p>
             </div>
@@ -240,7 +285,7 @@ function Post({ post, onDelete }: PostProps) {
     if (post.isUserBlockedOrBlocking) {
         return (
             <div className="border-b border-custom-gray p-4 text-custom">
-                <p className="text-gray-500 text-center">
+                <p className="text-custom-red text-center">
                     This content is unavailable. The user has been blocked or has blocked you.
                 </p>
             </div>
@@ -290,7 +335,7 @@ function Post({ post, onDelete }: PostProps) {
                 </Link>
                 <div className="flex flex-1 justify-between items-center">
                     <div>
-                        <Link to={`/profile/${post.username}`} className="font-bold text-white hover:underline">
+                        <Link to={`/profile/${post.username}`} className={`font-bold ${post.isBlocked || post.isUserBlockedOrBlocking ? 'text-custom-red' : 'text-white'} hover:underline`}>
                             {post.username}
                         </Link>
                         <p className="text-gray-400 text-sm">
@@ -338,7 +383,13 @@ function Post({ post, onDelete }: PostProps) {
                 </div>
             </div>
 
-            <div className={`text-sm whitespace-pre-wrap ${post.isBlocked ? 'text-custom-red' : 'text-custom-light-gray'}`}>{post.content}</div>
+            <div className={`text-sm whitespace-pre-wrap ${post.isBlocked || post.isUserBlockedOrBlocking ? 'text-custom-red' : 'text-custom-light-gray'}`}>
+                {post.formatted_content ? (
+                    <div dangerouslySetInnerHTML={{ __html: post.formatted_content }} />
+                ) : (
+                    post.content
+                )}
+            </div>
             
             {post.media && post.media.length > 0 && (
                 <div className="mt-4 relative">

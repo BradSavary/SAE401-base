@@ -96,4 +96,27 @@
   .text-custom-red {
     color: var(--clr-red);
   }
+
+  /* Ajoutons les styles pour les hashtags et mentions */
+  a.hashtag {
+    color: #1D9BF0;
+    font-weight: 600;
+    text-decoration: none;
+    transition: text-decoration 0.2s;
+  }
+
+  a.hashtag:hover {
+    text-decoration: underline;
+  }
+
+  a.mention {
+    color: #1D9BF0;
+    font-weight: 600;
+    text-decoration: none;
+    transition: text-decoration 0.2s;
+  }
+
+  a.mention:hover {
+    text-decoration: underline;
+  }
 }

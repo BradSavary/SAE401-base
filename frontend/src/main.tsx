@@ -12,6 +12,8 @@ import { Confirm } from './routes/confirm';
 import  Feed  from './routes/feed';
 import { Write } from './routes/write';
 import Profile from './routes/profile';
+import Search from './routes/search';
+import Explore from './routes/explore';
 
 import OtherProfile from './routes/otherProfile';
 
@@ -31,6 +33,14 @@ const router = createBrowserRouter([
       {
         path: 'feed',
         element: <Feed />,
+      },
+      {
+        path: 'search',
+        element: <Search />,
+      },
+      {
+        path: 'explore',
+        element: <Explore />,
       },
       {
         path: 'write',
