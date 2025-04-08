@@ -268,8 +268,8 @@ function Comment({ id, content, created_at, user, post_id, is_censored, onDelete
             </div>
           </div>
         ) : (
-          <div className="text-custom-light-gray text-sm break-words mt-1">
-            {formatTextWithHashtagsAndMentions(content)}
+          <div className="text-custom-light-gray text-sm break-words mt-1" 
+               dangerouslySetInnerHTML={{ __html: formatTextWithHashtagsAndMentions(content) }}>
           </div>
         )}
 
