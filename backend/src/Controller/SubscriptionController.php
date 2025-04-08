@@ -32,7 +32,8 @@ class SubscriptionController extends AbstractController
         SubscriptionRepository $subscriptionRepo,
         PostRepository $postRepo,
         UserRepository $userRepo,
-        Request $request
+        Request $request,
+        UserBlockRepository $userBlockRepository
     ): JsonResponse {
         $user = $userRepo->find($id);
 
@@ -52,6 +53,23 @@ class SubscriptionController extends AbstractController
 
         $subscribedUserIds = array_map(fn($sub) => $sub->getSubscribedTo()->getId(), $subscriptions);
         
+        if (empty($subscribedUserIds)) {
+            return new JsonResponse([
+                'posts' => [],
+                'previous_page' => null,
+                'next_page' => null,
+            ]);
+        }
+
+        // Récupérer les utilisateurs bloqués
+        $blockedUsers = $userBlockRepository->findBlockedUsers($user);
+        $blockedUserIds = array_map(fn($block) => $block->getBlocked()->getId(), $blockedUsers);
+        
+        // Filtrer les IDs des abonnements pour exclure les utilisateurs bloqués
+        $subscribedUserIds = array_filter($subscribedUserIds, function($id) use ($blockedUserIds) {
+            return !in_array($id, $blockedUserIds);
+        });
+
         if (empty($subscribedUserIds)) {
             return new JsonResponse([
                 'posts' => [],

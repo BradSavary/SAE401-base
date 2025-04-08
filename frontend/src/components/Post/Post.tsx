@@ -9,6 +9,7 @@ import CommentForm from "../Comment/CommentForm";
 import { useAuth } from '../../context/AuthProvider';
 import Avatar from '../../ui/Profile/Avatar';
 import Heart from '../../ui/Post/Heart';
+import { StarIcon } from '../../ui/Icon/star';
 
 interface MediaItem {
     url: string;
@@ -60,6 +61,7 @@ interface PostData {
     is_read_only?: boolean; // Indication si l'utilisateur est en mode lecture seule
     hashtags?: HashtagData[]; // Hashtags associés au post
     mentions?: MentionData[]; // Mentions d'utilisateurs dans le post
+    is_pinned?: boolean;
 }
 
 interface PostProps {
@@ -86,6 +88,7 @@ function Post({ post, onDelete }: PostProps) {
     const [commentsLoading, setCommentsLoading] = useState(false);
     const [commentsCount, setCommentsCount] = useState(post?.comments?.length || 0);
     const [showComments, setShowComments] = useState(false);
+    const [isPinned, setIsPinned] = useState(Boolean(post?.is_pinned));
 
     const connectedUserId = Number(localStorage.getItem('user_id'));
     const { user } = useAuth();
@@ -239,6 +242,24 @@ function Post({ post, onDelete }: PostProps) {
         setShowCommentForm(!showCommentForm);
     };
 
+    const handlePinPost = async () => {
+        try {
+            const response = await apiRequest(`/posts/${post.id}/pin`, {
+                method: 'POST',
+            });
+
+            if (response.ok) {
+                setIsPinned(!isPinned);
+                // Rafraîchir la page pour mettre à jour l'affichage
+                window.location.reload();
+            } else {
+                console.error('Failed to pin/unpin post');
+            }
+        } catch (error) {
+            console.error('Error pinning/unpinning post:', error);
+        }
+    };
+
     // Si le contenu indique un blocage par l'administration (text spécifique)
     if (post.content === 'This account has been blocked for violating the terms of use.') {
         return (
@@ -335,9 +356,14 @@ function Post({ post, onDelete }: PostProps) {
                 </Link>
                 <div className="flex flex-1 justify-between items-center">
                     <div>
-                        <Link to={`/profile/${post.username}`} className={`font-bold ${post.isBlocked || post.isUserBlockedOrBlocking ? 'text-custom-red' : 'text-white'} hover:underline`}>
-                            {post.username}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                            <Link to={`/profile/${post.username}`} className={`font-bold ${post.isBlocked || post.isUserBlockedOrBlocking ? 'text-custom-red' : 'text-white'} hover:underline`}>
+                                {post.username}
+                            </Link>
+                            {isPinned && (
+                                <StarIcon className="w-4 h-4 text-custom-blue" />
+                            )}
+                        </div>
                         <p className="text-gray-400 text-sm">
                             {new Date(post.created_at.date).toLocaleString()}
                         </p>
@@ -347,7 +373,7 @@ function Post({ post, onDelete }: PostProps) {
                             onClick={() => setShowPopup(!showPopup)}
                             className="text-gray-400 hover:text-white"
                         >
-                            <DotsIcon className="w-5 h-5" alt="Options" />
+                            <DotsIcon className="w-5 h-5 cursor-pointer" alt="Options" />
                         </button>
                         {showPopup && (
                             <div className="absolute right-0 mt-1 w-48 bg-custom-inverse rounded-md shadow-lg z-10">
@@ -367,14 +393,23 @@ function Post({ post, onDelete }: PostProps) {
                                                 setShowPopup(false);
                                                 setShowDeleteModal(true);
                                             }}
-                                            className="block w-full text-left px-4 py-2 text-sm text-custom-red bg-custom-inverse cursor-pointer"
+                                            className="block w-full text-left px-4 py-2 text-sm text-custom-red hover:bg-custom-dark-gray cursor-pointer"
                                         >
                                             Delete
                                         </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowPopup(false);
+                                                handlePinPost();
+                                            }}
+                                            className="block w-full text-left px-4 py-2 text-sm text-custom-blue hover:bg-custom-dark-gray cursor-pointer"
+                                        >
+                                            {isPinned ? 'Unpin' : 'Pin'}
+                                        </button>
                                     </>
                                 ) : (
-                                    <button className="block w-full text-left px-4 py-2 text-sm text-custom-red hover:bg-custom-dark-gray">
-                                        Signaler
+                                    <button className="block w-full text-left px-4 py-2 text-sm text-custom-red hover:bg-custom-dark-gray cursor-pointer">
+                                        Report
                                     </button>
                                 )}
                             </div>

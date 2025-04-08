@@ -91,6 +91,8 @@ export default function OtherProfile() {
       const response = await apiRequest(`/subscribe/${user.user_id}`, { method: 'POST' });
       if (response.ok) {
         setIsSubscribed(true);
+        // Actualiser le nombre d'abonnés
+        await fetchSubscriptionCounts(user.user_id);
       } else {
         console.error('Failed to subscribe');
       }
@@ -106,6 +108,8 @@ export default function OtherProfile() {
       const response = await apiRequest(`/unsubscribe/${user.user_id}`, { method: 'DELETE' });
       if (response.ok) {
         setIsSubscribed(false);
+        // Actualiser le nombre d'abonnés
+        await fetchSubscriptionCounts(user.user_id);
       } else {
         console.error('Failed to unsubscribe');
       }

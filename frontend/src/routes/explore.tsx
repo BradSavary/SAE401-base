@@ -139,7 +139,7 @@ const Explore = () => {
         )}
       </div>
       
-      <div className="mx-4">
+      <div className="px-4 bg-custom">
         <h2 className="text-white text-xl font-semibold mb-4">Trending Hashtags</h2>
         
         {isLoading ? (
@@ -149,7 +149,7 @@ const Explore = () => {
         ) : hashtags.length === 0 ? (
           <div className="text-center text-custom-light-gray py-4">No trending hashtags found</div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-custom grid grid-cols-2 md:grid-cols-3 gap-4">
             {hashtags.map((hashtag) => (
               <Link
                 key={hashtag.id}

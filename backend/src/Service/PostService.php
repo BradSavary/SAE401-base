@@ -181,7 +181,8 @@ class PostService
             'is_read_only' => $user->getIsReadOnly(),
             'media' => $mediaUrls,
             'hashtags' => $hashtags,
-            'mentions' => $mentions
+            'mentions' => $mentions,
+            'is_pinned' => $post->isPinned()
         ];
     
         if ($user->getIsBlocked()) {

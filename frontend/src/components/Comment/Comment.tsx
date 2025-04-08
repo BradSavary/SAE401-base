@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { DotsIcon } from '../../ui/Icon/3dots';
 import { apiRequest } from '../../lib/api-request';
 import TextArea from '../../ui/TextArea/TextArea';
 import Button from '../../ui/Button/Button';
+import { formatTextWithHashtagsAndMentions } from '../../lib/utils';
+import CommentInteraction from './CommentInteraction';
+import Avatar from '../../ui/Profile/Avatar';
 
 interface CommentUserInfo {
   id: number;
   username: string;
   avatar: string | null;
   is_blocked: boolean;
+}
+
+interface CommentData {
+  id: number;
+  content: string;
+  created_at: { date: string; timezone_type: number; timezone: string };
+  user: CommentUserInfo;
+  post_id: number;
+  is_censored: boolean;
 }
 
 interface CommentProps {
@@ -30,9 +42,36 @@ function Comment({ id, content, created_at, user, post_id, is_censored, onDelete
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
+  const [userLiked, setUserLiked] = useState(false);
+  const [userDisliked, setUserDisliked] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const connectedUserId = Number(localStorage.getItem('user_id'));
   const isCurrentUser = connectedUserId === user.id;
+
+  useEffect(() => {
+    const fetchInteractions = async () => {
+      try {
+        const response = await apiRequest(`/comment/${id}/interactions`);
+        if (response.ok) {
+          const data = await response.json();
+          setLikes(data.likes);
+          setDislikes(data.dislikes);
+          setUserLiked(data.user_liked);
+          setUserDisliked(data.user_disliked);
+        }
+      } catch (error) {
+        console.error('Error fetching comment interactions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInteractions();
+  }, [id]);
 
   const handleDelete = async () => {
     try {
@@ -61,7 +100,7 @@ function Comment({ id, content, created_at, user, post_id, is_censored, onDelete
 
     try {
       const response = await apiRequest(`/comments/${id}`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -140,11 +179,7 @@ function Comment({ id, content, created_at, user, post_id, is_censored, onDelete
   return (
     <div className="flex flex-row w-full py-2 px-2 border-t border-custom-gray bg-custom bg-opacity-20">
       <Link to={`/profile/${user.username}`} className="flex-shrink-0">
-        <img
-          src={user.avatar || '../../../public/default-avata.webp'}
-          className="rounded-full max-w-7 max-h-7 mt-1 ml-1 aspect-square"
-          alt="User avatar"
-        />
+        <Avatar avatar={user.avatar} className="w-8 h-8" />
       </Link>
       <div className="pl-2 w-full relative">
         <div className="flex justify-between items-start">
@@ -164,28 +199,29 @@ function Comment({ id, content, created_at, user, post_id, is_censored, onDelete
           </div>
           {isCurrentUser && (
             <div className="relative">
-              <DotsIcon
-                className="w-3 h-3 cursor-pointer text-custom-light-gray"
-                alt="Options"
-                onClick={() => setShowOptions(!showOptions)}
-              />
-              {showOptions && (
-                <div className="absolute top-5 right-0 bg-custom-inverse shadow-md rounded-md p-1 z-20">
+              <button
+                onClick={() => setShowPopup(!showPopup)}
+                className="text-custom-light-gray hover:text-white"
+              >
+                <DotsIcon className="w-5 h-5 cursor-pointer" />
+              </button>
+              {showPopup && (
+                <div className="absolute right-0 mt-2 w-48 bg-custom-inverse rounded-md shadow-lg z-10">
                   <button
-                    className="block w-full text-left px-3 py-1 text-xs text-custom-blue hover:bg-custom-light-gray hover:bg-opacity-20 cursor-pointer rounded whitespace-nowrap"
                     onClick={() => {
-                      setShowOptions(false);
+                      setShowPopup(false);
                       setIsEditing(true);
                     }}
+                    className="block w-full text-left px-4 py-2 text-sm text-custom-blue hover:bg-custom-dark-gray"
                   >
                     Edit
                   </button>
                   <button
-                    className="block bg-custom-inverse w-full text-left px-3 py-1 text-xs text-custom-red  hover:bg-opacity-20 cursor-pointer rounded whitespace-nowrap"
                     onClick={() => {
-                      setShowOptions(false);
+                      setShowPopup(false);
                       setShowConfirm(true);
                     }}
+                    className="block w-full text-left px-4 py-2 text-sm text-custom-red hover:bg-custom-dark-gray"
                   >
                     Delete
                   </button>
@@ -233,7 +269,7 @@ function Comment({ id, content, created_at, user, post_id, is_censored, onDelete
           </div>
         ) : (
           <div className="text-custom-light-gray text-sm break-words mt-1">
-            {content}
+            {formatTextWithHashtagsAndMentions(content)}
           </div>
         )}
 
@@ -260,6 +296,16 @@ function Comment({ id, content, created_at, user, post_id, is_censored, onDelete
               </div>
             </div>
           </div>
+        )}
+
+        {!loading && (
+          <CommentInteraction
+            commentId={id}
+            initialLikes={likes}
+            initialDislikes={dislikes}
+            userLiked={userLiked}
+            userDisliked={userDisliked}
+          />
         )}
       </div>
     </div>

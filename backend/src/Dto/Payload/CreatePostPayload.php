@@ -20,9 +20,10 @@ class CreatePostPayload
      */
     #[Assert\All([
         new Assert\File(
-            maxSize: "25M",
+            maxSize: "50M",
             mimeTypes: ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/mkv", "audio/mpeg", "audio/wav", "audio/mp3"],
-            mimeTypesMessage: "Please upload a valid image, video or audio file."
+            mimeTypesMessage: "Please upload a valid image, video or audio file.",
+            maxSizeMessage: "The file is too large. Maximum size is 50MB."
         )
     ])]
     private array $media = [];

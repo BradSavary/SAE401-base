@@ -61,9 +61,9 @@ const TrendingHashtags: React.FC<TrendingHashtagsProps> = ({
   }
 
   return (
-    <div className={`bg-custom-dark-gray rounded-lg p-4 ${className}`}>
+    <div className={`bg-custom rounded-lg p-4 ${className}`}>
       <h2 className="text-white text-xl font-semibold mb-4">Trending Hashtags</h2>
-      <ul className="space-y-3">
+      <ul className="space-y-3 bg-custom">
         {hashtags.map((hashtag) => (
           <li key={hashtag.id}>
             <Link

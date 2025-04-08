@@ -5,6 +5,7 @@ import Avatar from '../ui/Profile/Avatar';
 import PostList from '../components/Post/PostList';
 import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button/Button';
+import Post from '../components/Post/Post';
 
 interface User {
     user_id: number;
@@ -24,7 +25,9 @@ export default function Profile() {
     const [user, setUser] = useState<User | null>(null);
     const [followers, setFollowers] = useState<number>(0);
     const [following, setFollowing] = useState<number>(0);
-    const [activeTab, setActiveTab] = useState<'posts' | 'likes'>('posts'); // Onglet actif
+    const [activeTab, setActiveTab] = useState<'posts' | 'likes'>('posts');
+    const [pinnedPost, setPinnedPost] = useState<any>(null);
+    const [posts, setPosts] = useState<any[]>([]);
     const user_id = localStorage.getItem('user_id');
     const navigateTo = useNavigate();
 
@@ -54,8 +57,27 @@ export default function Profile() {
             }
         }
 
+        async function fetchPosts() {
+            if (user_id) {
+                try {
+                    const response = await apiRequest(`/posts/user/${user_id}`);
+                    const data = await response.json();
+                    const pinned = data.posts.find((post: any) => post.is_pinned);
+                    if (pinned) {
+                        setPinnedPost(pinned);
+                        setPosts(data.posts.filter((post: any) => post.id !== pinned.id));
+                    } else {
+                        setPosts(data.posts);
+                    }
+                } catch (error) {
+                    console.error('Error fetching posts:', error);
+                }
+            }
+        }
+
         fetchUserProfile();
         fetchSubscriptionCounts();
+        fetchPosts();
     }, [user_id]);
 
     if (!user) {
@@ -122,7 +144,15 @@ export default function Profile() {
             </p>
         </div>
         {activeTab === 'posts' ? (
-            <PostList endpoint={`/posts/user/${user_id}`} className="mb-5" />
+            <>
+                {pinnedPost && (
+                    <div className="mb-4">
+                        <h3 className="text-custom-light-gray text-sm mb-2">Pinned Post</h3>
+                        <Post post={pinnedPost} onDelete={() => {}} />
+                    </div>
+                )}
+                <PostList endpoint={`/posts/user/${user_id}`} className="mb-5" />
+            </>
         ) : (
             <PostList endpoint={`/posts/liked/${user_id}`} className="mb-5" />
         )}

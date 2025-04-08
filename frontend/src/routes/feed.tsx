@@ -14,9 +14,22 @@ const Feed = () => {
     }, []);
     
     // S'assurer que nous avons un endpoint valide même si userId est null
-    const endpoint = activeTab === 'foryou' 
-        ? '/posts' 
-        : userId ? `/subscriptions/posts/${userId}` : '/posts';
+    const getEndpoint = () => {
+        if (activeTab === 'foryou') {
+            return '/posts';
+        } else if (activeTab === 'subscribement' && userId) {
+            return `/subscriptions/posts/${userId}`;
+        }
+        return '/posts'; // Fallback si pas d'utilisateur connecté
+    };
+
+    const handleTabChange = (tab: 'foryou' | 'subscribement') => {
+        if (tab === 'subscribement' && !userId) {
+            alert('Veuillez vous connecter pour voir vos abonnements');
+            return;
+        }
+        setActiveTab(tab);
+    };
 
     return (
         <section className="bg-custom pb-15 flex flex-col w-full h-screen">
@@ -26,24 +39,18 @@ const Feed = () => {
             <div className="flex flex-row justify-around text-center text-custom-light-gray pt-5">
                 <p
                     className={`cursor-pointer pb-5 w-half ${activeTab === 'foryou' ? 'border-b-4 border-custom-light-gray' : ''}`}
-                    onClick={() => setActiveTab('foryou')}
+                    onClick={() => handleTabChange('foryou')}
                 >
                     For you
                 </p>
                 <p
                     className={`cursor-pointer pb-5 w-half ${activeTab === 'subscribement' ? 'border-b-4 border-custom-light-gray' : ''}`}
-                    onClick={() => {
-                        if (userId) {
-                            setActiveTab('subscribement');
-                        } else {
-                            alert('Please log in to view subscriptions');
-                        }
-                    }}
+                    onClick={() => handleTabChange('subscribement')}
                 >
                     Subscribement
                 </p>
             </div>
-            <PostList endpoint={endpoint} />
+            <PostList endpoint={getEndpoint()} />
         </section>
     );
 };

@@ -191,7 +191,7 @@ function EditPostModal({
                 <h2 className="text-lg md:text-xl font-bold mb-3 text-custom-inverse">Modifier le post</h2>
                 
                 {editError && (
-                    <div className="mb-3 p-2 bg-custom-red bg-opacity-20 text-custom-red rounded-md text-sm">
+                    <div className="mb-3 p-2 bg-custom-red bg-opacity-20 text-custom rounded-md text-sm">
                         {editError}
                     </div>
                 )}
@@ -264,7 +264,7 @@ function EditPostModal({
                         accept="image/*,video/*,audio/*"
                         onChange={handleMediaChange}
                         multiple
-                        className="block w-full text-sm text-custom-gray file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-custom-blue file:bg-opacity-20 file:text-custom-blue hover:file:bg-opacity-30"
+                        className="block w-full text-sm text-custom-gray file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-custom-blue file:bg-opacity-20 file:text-custom-blue hover:file:bg-opacity-30 cursor-pointer"
                     />
                 </div>
                 
@@ -291,11 +291,11 @@ function EditPostModal({
                 
                 <div className="flex justify-end gap-3 mt-3">
                     <button
-                        className="px-3 py-1.5 text-sm bg-custom-light-gray bg-opacity-30 rounded-md hover:bg-opacity-50 text-custom-inverse"
+                        className="px-3 py-1.5 text-sm bg-custom-light-gray bg-opacity-30 rounded-md hover:bg-opacity-50 text-custom-inverse cursor-pointer"
                         onClick={onClose}
                         disabled={isSubmitting}
                     >
-                        Annuler
+                        Cancel
                     </button>
                     <Button
                         variant="tertiary"

@@ -1,0 +1,21 @@
+# Enable CORS
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+
+# Augmenter la limite de taille des requêtes
+php_value upload_max_filesize 50M
+php_value post_max_size 50M
+php_value max_execution_time 300
+php_value max_input_time 300
+
+# Augmenter la limite de mémoire
+php_value memory_limit 256M
+
+# Désactiver la limite de taille de requête Apache
+LimitRequestBody 0
+
+# Gérer les requêtes OPTIONS pour CORS
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L] 

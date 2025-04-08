@@ -49,6 +49,9 @@ class Post
     #[ORM\Column(type: 'boolean')]
     private bool $is_censored = false;
 
+    #[ORM\Column(type: 'boolean')]
+    private bool $is_pinned = false;
+
     public function __construct()
     {
         $this->interactions = new ArrayCollection();
@@ -303,5 +306,16 @@ class Post
             return "Ce message enfreint les conditions d'utilisation de la plateforme";
         }
         return $this->content;
+    }
+
+    public function isPinned(): bool
+    {
+        return $this->is_pinned;
+    }
+
+    public function setIsPinned(bool $is_pinned): self
+    {
+        $this->is_pinned = $is_pinned;
+        return $this;
     }
 }

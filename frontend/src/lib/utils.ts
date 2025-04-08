@@ -66,3 +66,15 @@ export function timeAgo(date: Date): string {
 export function clearLocalStorage(){
   localStorage.clear();
 };
+
+export const formatTextWithHashtagsAndMentions = (text: string): string => {
+    if (!text) return '';
+    
+    // Remplacer les hashtags
+    let formattedText = text.replace(/#(\w+)/g, '<a href="/search?q=%23$1" class="text-custom-blue hover:underline">#$1</a>');
+    
+    // Remplacer les mentions
+    formattedText = formattedText.replace(/@(\w+)/g, '<a href="/profile/$1" class="text-custom-blue hover:underline">@$1</a>');
+    
+    return formattedText;
+};

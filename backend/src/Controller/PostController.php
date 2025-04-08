@@ -20,6 +20,7 @@ use App\Repository\PostInteractionRepository;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use App\Repository\UserBlockRepository;
 
 final class PostController extends AbstractController
 {
@@ -31,17 +32,31 @@ final class PostController extends AbstractController
     }
 
     #[Route('/posts', name: 'posts.index', methods: ['GET'])]
-    public function index(Request $request, PostRepository $postRepository): Response
+    public function index(Request $request, PostRepository $postRepository, UserBlockRepository $userBlockRepository): Response
     {
         $page = (int) $request->query->get('page', 1);
         $limit = 15;
 
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+        
+        // Récupérer tous les posts
         $allPosts = $postRepository->findBy([], ['created_at' => 'DESC']);
+        
+        // Filtrer les posts des utilisateurs bloqués
+        if ($currentUser) {
+            $blockedUsers = $userBlockRepository->findBlockedUsers($currentUser);
+            $blockedUserIds = array_map(fn($block) => $block->getBlocked()->getId(), $blockedUsers);
+            
+            $allPosts = array_filter($allPosts, function($post) use ($blockedUserIds) {
+                return !in_array($post->getUser()->getId(), $blockedUserIds);
+            });
+        }
+        
         $paginatedData = $this->PostService->paginatePosts($allPosts, $page, $limit);
 
         $baseUrl = $this->getParameter('base_url');
         $uploadDir = $this->getParameter('upload_directory');
-        $currentUser = $this->getUser();
 
         $formattedPosts = [];
         foreach ($paginatedData['posts'] as $post) {
@@ -168,83 +183,93 @@ final class PostController extends AbstractController
         }
     }
 
-#[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]
-public function getUserPosts(
-    int $id,
-    Request $request,
-    PostRepository $postRepository,
-    EntityManagerInterface $entityManager
-): JsonResponse {
-    $user = $entityManager->getRepository(User::class)->find($id);
+    #[Route('/posts/user/{id}', name: 'posts.user', methods: ['GET'])]
+    public function getUserPosts(
+        int $id,
+        Request $request,
+        PostRepository $postRepository,
+        EntityManagerInterface $entityManager,
+        UserBlockRepository $userBlockRepository
+    ): JsonResponse {
+        $user = $entityManager->getRepository(User::class)->find($id);
 
-    if (!$user) {
-        return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
-    }
-
-    $allPosts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
-
-    $page = (int) $request->query->get('page', 1);
-    $limit = 15; // Nombre de posts par page
-    $paginatedData = $this->PostService->paginatePosts($allPosts, $page, $limit);
-
-    $baseUrl = $this->getParameter('base_url');
-    $uploadDir = $this->getParameter('upload_directory');
-    $currentUser = $this->getUser();
-
-    $formattedPosts = [];
-    foreach ($paginatedData['posts'] as $post) {
-        $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
-    }
-
-    return new JsonResponse([
-        'posts' => $formattedPosts,
-        'previous_page' => $paginatedData['previous_page'],
-        'next_page' => $paginatedData['next_page'],
-    ], JsonResponse::HTTP_OK);
-}
-
-
-#[Route('/posts/{id}', name: 'posts.delete', methods: ['DELETE'])]
-#[IsGranted("ROLE_USER")]
-public function delete(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
-{
-    try {
-        $post = $postRepository->find($id);
-
-        if (!$post) {
-            return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
         }
 
         /** @var User $currentUser */
         $currentUser = $this->getUser();
-
-        if ($this->isGranted('ROLE_ADMIN') || $post->getUser() === $currentUser) {
-            // Supprimer les fichiers médias associés au post
-            foreach ($post->getMedia() as $media) {
-                $fileName = $media->getFilename();
-                if ($fileName) {
-                    $filePath = dirname(__DIR__, 2) . '/public/uploads/media/' . $fileName;
-                    if (file_exists($filePath)) {
-                        unlink($filePath); // Supprime le fichier
-                    }
-                }
+        
+        // Vérifier si l'utilisateur courant a bloqué l'utilisateur dont on veut voir les posts
+        if ($currentUser) {
+            $isBlocked = $userBlockRepository->isBlocked($currentUser, $user);
+            if ($isBlocked) {
+                return new JsonResponse(['posts' => [], 'previous_page' => null, 'next_page' => null]);
             }
-
-            $entityManager->remove($post);
-            $entityManager->flush();
-
-            return new JsonResponse(['status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
         }
 
-        return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
-    } catch (\Exception $e) {
+        $allPosts = $postRepository->findBy(['user' => $user], ['created_at' => 'DESC']);
+
+        $page = (int) $request->query->get('page', 1);
+        $limit = 15;
+        $paginatedData = $this->PostService->paginatePosts($allPosts, $page, $limit);
+
+        $baseUrl = $this->getParameter('base_url');
+        $uploadDir = $this->getParameter('upload_directory');
+
+        $formattedPosts = [];
+        foreach ($paginatedData['posts'] as $post) {
+            $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+        }
+
         return new JsonResponse([
-            'error' => 'An error occurred while deleting the post: ' . $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+            'posts' => $formattedPosts,
+            'previous_page' => $paginatedData['previous_page'],
+            'next_page' => $paginatedData['next_page'],
+        ], JsonResponse::HTTP_OK);
     }
-}
+
+    #[Route('/posts/{id}', name: 'posts.delete', methods: ['DELETE'])]
+    #[IsGranted("ROLE_USER")]
+    public function delete(int $id, PostRepository $postRepository, EntityManagerInterface $entityManager): JsonResponse
+    {
+        try {
+            $post = $postRepository->find($id);
+
+            if (!$post) {
+                return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            /** @var User $currentUser */
+            $currentUser = $this->getUser();
+
+            if ($this->isGranted('ROLE_ADMIN') || $post->getUser() === $currentUser) {
+                // Supprimer les fichiers médias associés au post
+                foreach ($post->getMedia() as $media) {
+                    $fileName = $media->getFilename();
+                    if ($fileName) {
+                        $filePath = dirname(__DIR__, 2) . '/public/uploads/media/' . $fileName;
+                        if (file_exists($filePath)) {
+                            unlink($filePath); // Supprime le fichier
+                        }
+                    }
+                }
+
+                $entityManager->remove($post);
+                $entityManager->flush();
+
+                return new JsonResponse(['status' => 'Post deleted'], JsonResponse::HTTP_NO_CONTENT);
+            }
+
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => 'An error occurred while deleting the post: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 
     #[Route('/posts/liked/{id}', name: 'posts.liked', methods: ['GET'])]
     public function getLikedPostsByUser(
@@ -638,6 +663,55 @@ public function delete(int $id, PostRepository $postRepository, EntityManagerInt
                     }
                 }
             }
+        }
+    }
+
+    #[Route('/posts/{id}/pin', name: 'posts.pin', methods: ['POST'])]
+    #[IsGranted("ROLE_USER")]
+    public function pinPost(
+        int $id,
+        Request $request,
+        PostRepository $postRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        try {
+            $post = $postRepository->find($id);
+            
+            if (!$post) {
+                return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
+            }
+            
+            /** @var User $currentUser */
+            $currentUser = $this->getUser();
+            
+            // Vérifier que l'utilisateur est bien l'auteur du post
+            if ($post->getUser()->getId() !== $currentUser->getId()) {
+                return new JsonResponse(['error' => 'You can only pin your own posts'], JsonResponse::HTTP_FORBIDDEN);
+            }
+            
+            // Si le post est déjà épinglé, on le désépingle
+            if ($post->isPinned()) {
+                $post->setIsPinned(false);
+            } else {
+                // Désépingler tous les autres posts de l'utilisateur
+                $userPosts = $postRepository->findBy(['user' => $currentUser, 'is_pinned' => true]);
+                foreach ($userPosts as $userPost) {
+                    $userPost->setIsPinned(false);
+                }
+                // Épingler le nouveau post
+                $post->setIsPinned(true);
+            }
+            
+            $entityManager->flush();
+            
+            return new JsonResponse([
+                'status' => 'success',
+                'is_pinned' => $post->isPinned()
+            ], JsonResponse::HTTP_OK);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => 'An error occurred: ' . $e->getMessage()
+            ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }

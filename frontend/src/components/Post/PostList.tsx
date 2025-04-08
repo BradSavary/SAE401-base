@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { apiRequest } from '../../lib/api-request';
 import Post from './Post';
 import { enrichPostsWithBlockingInfo } from '../../lib/block-service';
@@ -30,11 +30,11 @@ interface PostData {
     username: string;
     content: string;
     created_at: { date: string; timezone_type: number; timezone: string };
-    avatar: string;  // Changed from string | null to string to match Post.tsx
+    avatar: string;
     user_id: number;
-    userLiked?: boolean;  // Made optional
-    isBlocked?: boolean;  // Indique si l'utilisateur est bloqué par l'administration
-    isUserBlockedOrBlocking?: boolean; // Indique si l'utilisateur est bloqué par l'utilisateur ou a bloqué l'utilisateur
+    userLiked?: boolean;
+    isBlocked?: boolean;
+    isUserBlockedOrBlocking?: boolean;
     media: MediaItem[];
     comments?: CommentData[];
     author: {
@@ -42,137 +42,147 @@ interface PostData {
         username: string;
         avatar: string | null;
     };
-    is_censored: boolean;  // Ajout de ce champ requis
-    is_read_only?: boolean; // Champ optionnel pour le mode lecture seule
+    is_censored: boolean;
+    is_read_only?: boolean;
 }
 
 interface PostListProps {
-    endpoint: string; // API endpoint to fetch posts
-    className?: string; // Optional className for styling
+    endpoint?: string;
+    className?: string;
+    posts?: any[];
 }
 
-function PostList({ endpoint, className }: PostListProps) {
-    const [posts, setPosts] = useState<PostData[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [page, setPage] = useState<number>(1); // Page actuelle
-    const [hasMore, setHasMore] = useState<boolean>(true); // Indique s'il reste des posts à charger
-    const containerRef = useRef<HTMLDivElement | null>(null); // Référence pour le conteneur défilable
-    const loadedPostIdsRef = useRef(new Set<number>()); // Référence pour suivre les IDs des posts déjà chargés
+export default function PostList({ endpoint, className = '', posts: initialPosts }: PostListProps) {
+    const [posts, setPosts] = useState<any[]>(initialPosts || []);
+    const [loading, setLoading] = useState(!initialPosts);
+    const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState<number>(1);
+    const [hasMore, setHasMore] = useState<boolean>(true);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const loadingRef = useRef<boolean>(false);
 
-    const fetchPosts = async (pageToLoad: number) => {
-        if (loading || !hasMore) return; // Empêche les requêtes multiples ou inutiles
+    const fetchPosts = useCallback(async (pageToLoad: number) => {
+        if (loadingRef.current || !hasMore || !endpoint) return;
+        
+        loadingRef.current = true;
         setLoading(true);
-    
+        
         try {
             const response = await apiRequest(`${endpoint}?page=${pageToLoad}`);
-            if (response.ok) {
-                const data = await response.json();
-                let newPosts = data.posts || [];
-    
-                // Filtrer les posts déjà existants en utilisant notre Set de référence
-                const filteredPosts: PostData[] = newPosts
-                    .filter((post: any) => !loadedPostIdsRef.current.has(post.id))
-                    .map((post: any) => ({
-                        ...post,
-                        avatar: post.avatar || '../../../public/default-avata.webp',
-                        // Ajouter les champs pour la compatibilité avec enrichPostsWithBlockingInfo
-                        author: {
-                            user_id: post.user_id,
-                            username: post.username,
-                            avatar: post.avatar || '../../../public/default-avata.webp'
-                        }
-                    }));
-                
-                // Mettre à jour notre Set de référence avec les nouveaux IDs
-                filteredPosts.forEach(post => {
-                    loadedPostIdsRef.current.add(post.id);
+            const data = await response.json();
+            
+            if (data.posts && data.posts.length > 0) {
+                setPosts(prevPosts => {
+                    // Éviter les doublons
+                    const newPosts = data.posts.filter((newPost: any) => 
+                        !prevPosts.some(prevPost => prevPost.id === newPost.id)
+                    );
+                    console.log(newPosts);
+                    console.log(pageToLoad);
+                    return pageToLoad === 1 ? newPosts : [...prevPosts, ...newPosts];
                 });
-                
-                // Enrichir les posts avec les informations de blocage
-                const postsWithBlockingInfo = await enrichPostsWithBlockingInfo(filteredPosts);
-                
-                // Enrichir les posts avec les informations de mode lecture seule
-                const enrichedPosts = await enrichPostsWithReadOnlyInfo(postsWithBlockingInfo);
-                
-                setPosts((prevPosts) => [...prevPosts, ...enrichedPosts]);
-                setHasMore(newPosts.length > 0); // Vérifie s'il reste des posts à charger
+                setHasMore(data.next_page !== null);
             } else {
-                console.error('Failed to fetch posts');
+                setHasMore(false);
             }
-        } catch (error) {
-            console.error('Error fetching posts:', error);
+        } catch (err) {
+            setError('Failed to load posts');
+            console.error('Error fetching posts:', err);
         } finally {
             setLoading(false);
+            loadingRef.current = false;
         }
-    };
+    }, [endpoint, hasMore]);
 
-    // Réinitialiser l'état lorsque l'endpoint change
+    // Charger les posts initiaux
     useEffect(() => {
-        setPosts([]); // Réinitialiser les posts
-        setPage(1); // Réinitialiser la page
-        setHasMore(true); // Réinitialiser hasMore
-        loadedPostIdsRef.current.clear(); // Vider la liste des posts déjà chargés
-        fetchPosts(1); // Charger la première page du nouvel endpoint
-    }, [endpoint]);
+        if (endpoint && !initialPosts) {
+            fetchPosts(1);
+        }
+    }, [endpoint, initialPosts, fetchPosts]);
 
-    // Gestion du défilement pour charger les pages suivantes
+    // Gestion du défilement
     useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
         const handleScroll = () => {
-            if (!containerRef.current || loading || !hasMore) return;
+            if (loadingRef.current || !hasMore) return;
 
-            const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-            if (scrollTop + clientHeight >= scrollHeight - 10) {
-                setPage((prevPage) => prevPage + 1); // Charger la page suivante
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            // Vérifier si nous sommes proches du bas de la page
+            if (scrollHeight - scrollTop <= clientHeight + 100) {
+                setPage(prevPage => {
+                    const nextPage = prevPage + 1;
+                    fetchPosts(nextPage);
+                    return nextPage;
+                });
             }
         };
 
-        const container = containerRef.current;
-        if (container) {
-            container.addEventListener('scroll', handleScroll);
+        // Ajouter l'écouteur immédiatement
+        container.addEventListener('scroll', handleScroll);
+
+        // Vérifier la position initiale après le chargement des posts
+        if (posts.length > 0) {
+            handleScroll();
         }
 
         return () => {
-            if (container) {
-                container.removeEventListener('scroll', handleScroll);
-            }
+            container.removeEventListener('scroll', handleScroll);
         };
-    }, [loading, hasMore]);
+    }, [hasMore, fetchPosts, posts.length]);
 
-    // Charger les posts lorsque la page change
+    // Ajouter un effet pour vérifier la position du scroll après le chargement initial
     useEffect(() => {
-        if (page > 1) {
-            fetchPosts(page);
-        }
-    }, [page]);
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            if (posts.length === 0 && !loading) {
-                fetchPosts(1);
+        if (posts.length > 0 && !loading) {
+            const container = containerRef.current;
+            if (container) {
+                const { scrollTop, scrollHeight, clientHeight } = container;
+                if (scrollHeight <= clientHeight) {
+                    // Si le contenu est plus petit que la hauteur du conteneur, charger plus de posts
+                    setPage(prevPage => {
+                        const nextPage = prevPage + 1;
+                        fetchPosts(nextPage);
+                        return nextPage;
+                    });
+                }
             }
-        }, 3000);
+        }
+    }, [posts.length, loading, fetchPosts]);
 
-        return () => clearTimeout(timeout);
-    }, [posts, loading]);
-
-    const handleDeletePost = (postId: number) => {
-        setPosts((prevPosts) => prevPosts.filter((p) => p.id !== postId));
-        // Supprimer aussi de notre Set de référence
-        loadedPostIdsRef.current.delete(postId);
+    const handleDelete = (postId: number) => {
+        setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
     };
 
+    if (loading && posts.length === 0) {
+        return <div className="text-center text-custom-light-gray">Loading...</div>;
+    }
+
+    if (error) {
+        return <div className="text-center text-custom-red">{error}</div>;
+    }
+
+    if (posts.length === 0) {
+        return <div className="text-center text-custom-light-gray">No posts found</div>;
+    }
+
     return (
-        <div ref={containerRef} className={`overflow-y-auto scrollbar-thin ${className || ''}`} style={{ maxHeight: '80vh' }}>
-            {posts.map((post, index) => (
+        <div 
+            ref={containerRef} 
+            className={`overflow-y-auto scrollbar-thin ${className || ''}`} 
+            style={{ maxHeight: '80vh' }}
+        >
+            {posts.map((post) => (
                 <Post
-                    key={`${post.id}-${index}`} // Utiliser une clé composite pour éviter les doublons
+                    key={post.id}
                     post={post}
-                    onDelete={handleDeletePost}
+                    onDelete={handleDelete}
                 />
             ))}
-            {loading && <div className="text-custom text-center mt-4">Loading...</div>}
+            {loading && posts.length > 0 && (
+                <div className="text-center text-custom-light-gray py-4">Loading more posts...</div>
+            )}
         </div>
     );
 }
-
-export default PostList;
