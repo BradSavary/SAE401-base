@@ -5,13 +5,24 @@ import Heart from '../../ui/Post/Heart';
 interface CommentInteractionProps {
     commentId: number;
     initialLikes: number;
-    initialUserLiked: boolean;
+    initialDislikes: number;
+    userLiked: boolean;
+    userDisliked: boolean;
 }
 
-export default function CommentInteraction({ commentId, initialLikes, initialUserLiked }: CommentInteractionProps) {
+export default function CommentInteraction({ commentId, initialLikes, initialDislikes, userLiked, userDisliked }: CommentInteractionProps) {
     const [likes, setLikes] = useState(initialLikes);
-    const [userLiked, setUserLiked] = useState(initialUserLiked);
+    const [dislikes, setDislikes] = useState(initialDislikes);
+    const [isLiked, setIsLiked] = useState(userLiked);
+    const [isDisliked, setIsDisliked] = useState(userDisliked);
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        setLikes(initialLikes);
+        setDislikes(initialDislikes);
+        setIsLiked(userLiked);
+        setIsDisliked(userDisliked);
+    }, [initialLikes, initialDislikes, userLiked, userDisliked]);
 
     const handleLike = async () => {
         if (isLoading) return;
@@ -27,13 +38,8 @@ export default function CommentInteraction({ commentId, initialLikes, initialUse
 
             if (response.ok) {
                 const data = await response.json();
-                if (data.message === 'Comment liked successfully') {
-                    setLikes(prev => prev + 1);
-                    setUserLiked(true);
-                } else if (data.message === 'Like removed successfully') {
-                    setLikes(prev => prev - 1);
-                    setUserLiked(false);
-                }
+                setLikes(data.likes);
+                setIsLiked(data.user_liked);
             }
         } catch (error) {
             console.error('Error interacting with comment:', error);
@@ -47,9 +53,10 @@ export default function CommentInteraction({ commentId, initialLikes, initialUse
             <button
                 onClick={handleLike}
                 disabled={isLoading}
-                className={`flex items-center gap-1 ${userLiked ? 'text-custom-red' : 'text-custom-light-gray'} hover:text-custom-red transition-colors`}
+                className={`flex items-center gap-1 ${isLiked ? 'text-custom-red' : 'text-custom-light-gray'} hover:text-custom-red transition-colors`}
+                aria-label={isLiked ? 'Unlike comment' : 'Like comment'}
             >
-                <Heart filled={userLiked} />
+                <Heart filled={isLiked} />
                 <span className="text-sm">{likes}</span>
             </button>
         </div>

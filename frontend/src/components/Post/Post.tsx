@@ -519,7 +519,7 @@ function Post({ post, onDelete }: PostProps) {
                             Chargement des commentaires...
                         </div>
                     ) : comments.length > 0 ? (
-                        <div className="mt-2 border-t border-custom-gray pt-2">
+                        <div className="mt-2 pt-2">
                             <CommentList 
                                 comments={comments} 
                                 onDeleteComment={(commentId) => {
