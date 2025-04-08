@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Post;
 use App\Entity\Comment;
+use App\Entity\CommentInteraction;
+use App\Entity\PostInteraction;
 use App\Repository\PostRepository;
 use App\Repository\CommentRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -215,5 +217,90 @@ class ModerationController extends AbstractController
                 'is_censored' => $comment->isCensored(),
             ]
         ], Response::HTTP_OK);
+    }
+
+    /**
+     * Supprimer un post 
+     */
+    #[Route('/posts/{id}', name: 'moderation.delete_post', methods: ['DELETE'])]
+    public function deletePost(
+        int $id,
+        PostRepository $postRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $post = $postRepository->find($id);
+        
+        if (!$post) {
+            return new JsonResponse(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
+        }
+        
+        try {
+            // Manually delete post interactions first
+            $query = $entityManager->createQuery(
+                'DELETE FROM App\Entity\PostInteraction pi WHERE pi.post = :postId'
+            );
+            $query->setParameter('postId', $post->getId());
+            $query->execute();
+            
+            // Delete all comments associated with this post
+            $commentsQuery = $entityManager->createQuery(
+                'DELETE FROM App\Entity\Comment c WHERE c.post = :postId'
+            );
+            $commentsQuery->setParameter('postId', $post->getId());
+            $commentsQuery->execute();
+            
+            // Now delete the post
+            $entityManager->remove($post);
+            $entityManager->flush();
+            
+            return new JsonResponse([
+                'message' => 'Post successfully deleted',
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            // Log the error for better troubleshooting
+            error_log('Error deleting post: ' . $e->getMessage());
+            return new JsonResponse([
+                'error' => 'Failed to delete post: ' . $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Supprimer un commentaire
+     */
+    #[Route('/comments/{id}', name: 'moderation.delete_comment', methods: ['DELETE'])]
+    public function deleteComment(
+        int $id,
+        CommentRepository $commentRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $comment = $commentRepository->find($id);
+        
+        if (!$comment) {
+            return new JsonResponse(['error' => 'Comment not found'], Response::HTTP_NOT_FOUND);
+        }
+        
+        try {
+            // Manually delete comment interactions first
+            $query = $entityManager->createQuery(
+                'DELETE FROM App\Entity\CommentInteraction ci WHERE ci.comment = :commentId'
+            );
+            $query->setParameter('commentId', $comment->getId());
+            $query->execute();
+            
+            // Now delete the comment
+            $entityManager->remove($comment);
+            $entityManager->flush();
+            
+            return new JsonResponse([
+                'message' => 'Comment successfully deleted',
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            // Log the error for better troubleshooting
+            error_log('Error deleting comment: ' . $e->getMessage());
+            return new JsonResponse([
+                'error' => 'Failed to delete comment: ' . $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 } 

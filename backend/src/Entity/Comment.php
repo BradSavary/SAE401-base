@@ -6,6 +6,8 @@ use App\Repository\CommentRepository;
 use Doctrine\ORM\Mapping as ORM;
 use App\Entity\Post;
 use App\Entity\User;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: CommentRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -33,9 +35,13 @@ class Comment
     #[ORM\Column(type: 'boolean')]
     private bool $is_censored = false;
 
+    #[ORM\OneToMany(mappedBy: 'comment', targetEntity: CommentInteraction::class, cascade: ['remove'], orphanRemoval: true)]
+    private Collection $interactions;
+
     public function __construct()
     {
         $this->created_at = new \DateTime();
+        $this->interactions = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -93,6 +99,36 @@ class Comment
     public function setCreatedAt(\DateTimeInterface $created_at): self
     {
         $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, CommentInteraction>
+     */
+    public function getInteractions(): Collection
+    {
+        return $this->interactions;
+    }
+
+    public function addInteraction(CommentInteraction $interaction): self
+    {
+        if (!$this->interactions->contains($interaction)) {
+            $this->interactions[] = $interaction;
+            $interaction->setComment($this);
+        }
+
+        return $this;
+    }
+
+    public function removeInteraction(CommentInteraction $interaction): self
+    {
+        if ($this->interactions->removeElement($interaction)) {
+            // Set the owning side to null (unless already changed)
+            if ($interaction->getComment() === $this) {
+                $interaction->setComment(null);
+            }
+        }
 
         return $this;
     }

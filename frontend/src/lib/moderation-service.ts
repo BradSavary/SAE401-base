@@ -101,6 +101,50 @@ export class ModerationService {
       throw error;
     }
   }
+
+  /**
+   * Supprime un post
+   * @param postId Identifiant du post à supprimer
+   * @returns Réponse de l'API
+   */
+  static async deletePost(postId: number) {
+    try {
+      const response = await apiRequest(`/moderation/posts/${postId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression du post');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Supprime un commentaire
+   * @param commentId Identifiant du commentaire à supprimer
+   * @returns Réponse de l'API
+   */
+  static async deleteComment(commentId: number) {
+    try {
+      const response = await apiRequest(`/moderation/comments/${commentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression du commentaire');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      throw error;
+    }
+  }
 }
 
 export default ModerationService; 

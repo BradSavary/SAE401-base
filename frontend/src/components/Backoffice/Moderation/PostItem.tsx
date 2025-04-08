@@ -1,111 +1,127 @@
-import React from 'react';
+import React, { useState } from 'react';
+import Avatar from '../../../ui/Profile/Avatar';
 
-interface PostItemProps {
-  post: {
-    id: number;
-    content: string;
-    username: string;
-    created_at: {
-      date: string;
-    };
-    avatar: string | null;
-    is_censored: boolean;
-    media?: Array<{
-      id: number;
-      url: string;
-      type: string;
-    }>;
-  };
-  onCensor: (id: number, isCensored: boolean) => void;
+interface MediaItem {
+  id: number;
+  url: string;
+  type: string;
 }
 
-const PostItem: React.FC<PostItemProps> = ({ post, onCensor }) => {
-  const { id, content, username, created_at, avatar, is_censored, media } = post;
-  const defaultAvatar = '/default-avata.webp';
-  
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString();
+interface PostItemProps {
+  id: number;
+  content: string;
+  username: string;
+  created_at: string;
+  avatar: string | null;
+  is_censored: boolean;
+  media?: MediaItem[];
+  onCensor: (id: number, isCensored: boolean) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+}
+
+const PostItem: React.FC<PostItemProps> = ({
+  id,
+  content,
+  username,
+  created_at,
+  avatar,
+  is_censored,
+  media,
+  onCensor,
+  onDelete
+}) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this post?')) {
+      setIsDeleting(true);
+      try {
+        await onDelete(id);
+      } catch (error) {
+        console.error('Error deleting post:', error);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
-  
-  const toggleCensor = () => {
-    onCensor(id, !is_censored);
+
+  const renderMedia = (mediaItem: MediaItem) => {
+    switch (mediaItem.type) {
+      case 'image':
+        return (
+          <img
+            key={mediaItem.id}
+            src={mediaItem.url}
+            alt="Post media"
+            className="max-w-full h-auto rounded-lg"
+          />
+        );
+      case 'video':
+        return (
+          <video
+            key={mediaItem.id}
+            src={mediaItem.url}
+            controls
+            className="max-w-full h-auto rounded-lg"
+          />
+        );
+      case 'audio':
+        return (
+          <audio
+            key={mediaItem.id}
+            src={mediaItem.url}
+            controls
+            className="w-full"
+          />
+        );
+      default:
+        return null;
+    }
   };
-  
-  const renderMedia = () => {
-    if (!media || media.length === 0) return null;
-    
-    return (
-      <div className="mt-3 flex flex-wrap gap-2">
-        {media.map(item => (
-          <div key={item.id} className="relative">
-            {item.type === 'image' && (
-              <img 
-                src={item.url} 
-                alt="Post media" 
-                className="max-h-48 rounded object-cover" 
-              />
-            )}
-            {item.type === 'video' && (
-              <video 
-                src={item.url} 
-                controls 
-                className="max-h-48 rounded"
-              />
-            )}
-            {item.type === 'audio' && (
-              <audio 
-                src={item.url} 
-                controls 
-                className="w-full"
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
+
   return (
-    <div className={`p-4 rounded-lg ${is_censored ? 'bg-red-900/20' : 'bg-custom-dark-gray'}`}>
-      <div className="flex items-start space-x-4">
-        <img 
-          src={avatar || defaultAvatar} 
-          alt={`${username}'s avatar`} 
-          className="w-10 h-10 rounded-full object-cover"
-        />
-        
-        <div className="flex-1">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <p className="font-bold text-white">{username}</p>
-              <p className="text-xs text-custom-light-gray">{formatDate(created_at.date)}</p>
-            </div>
-            
-            <button
-              onClick={toggleCensor}
-              className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${
-                is_censored
-                  ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'bg-red-500 hover:bg-red-600 text-white'
-              }`}
-            >
-              {is_censored ? 'Restore' : 'Censor'}
-            </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Avatar
+            avatar={avatar}
+            className="w-10 h-10"
+          />
+          <div>
+            <p className="font-medium text-custom-light-gray">{username}</p>
+            <p className="text-sm text-custom-light-gray">
+              {new Date(created_at).toLocaleString()}
+            </p>
           </div>
-          
-          <div className={`p-3 rounded ${is_censored ? 'bg-red-900/10 text-gray-400 italic' : 'text-white'}`}>
-            {content}
-          </div>
-          
-          {renderMedia()}
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => onCensor(id, !is_censored)}
+            className={`px-3 py-1 rounded ${
+              is_censored
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-yellow-600 hover:bg-yellow-700'
+            } text-white`}
+          >
+            {is_censored ? 'Uncensor' : 'Censor'}
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
       </div>
-      
-      {is_censored && (
-        <div className="mt-2 text-sm text-yellow-400 italic">
-          This content has been censored and is no longer visible to users.
-        </div>
-      )}
+      <div className={`${is_censored ? 'opacity-50' : ''}`}>
+        <p className="text-custom-light-gray">{content}</p>
+        {media && media.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {media.map(renderMedia)}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

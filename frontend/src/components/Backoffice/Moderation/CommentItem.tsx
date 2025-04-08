@@ -1,79 +1,93 @@
-import React from 'react';
+import React, { useState } from 'react';
+import Avatar from '../../../ui/Profile/Avatar';
 
 interface CommentItemProps {
-  comment: {
-    id: number;
-    content: string;
-    user?: {
-      id: number;
-      username: string;
-      avatar: string | null;
-    };
-    created_at: {
-      date: string;
-    };
-    post_id: number;
-    is_censored: boolean;
+  id: number;
+  content: string;
+  username: string;
+  created_at: {
+    date: string;
+    timezone_type: number;
+    timezone: string;
   };
-  onCensor: (id: number, isCensored: boolean) => void;
+  avatar: string | null;
+  is_censored: boolean;
+  onCensor: (id: number, isCensored: boolean) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ comment, onCensor }) => {
-  const { id, content, user, created_at, post_id, is_censored } = comment;
-  const defaultAvatar = '/default-avatar.webp';
-  
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString();
+const CommentItem: React.FC<CommentItemProps> = ({
+  id,
+  content,
+  username,
+  created_at,
+  avatar,
+  is_censored,
+  onCensor,
+  onDelete
+}) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this comment?')) {
+      setIsDeleting(true);
+      try {
+        await onDelete(id);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
-  
-  const toggleCensor = () => {
-    onCensor(id, !is_censored);
+
+  const formatDate = (dateObj: { date: string; timezone_type: number; timezone: string }) => {
+    try {
+      return new Date(dateObj.date).toLocaleString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
   };
-  
-  // Default values for user in case it's undefined
-  const username = user?.username || 'Unknown User';
-  const userAvatar = user?.avatar || defaultAvatar;
-  
+
   return (
-    <div className={`p-4 rounded-lg ${is_censored ? 'bg-red-900/20' : 'bg-custom-dark-gray'}`}>
-      <div className="flex items-start space-x-4">
-        <img 
-          src={userAvatar} 
-          alt={`${username}'s avatar`} 
-          className="w-8 h-8 rounded-full object-cover"
-        />
-        
-        <div className="flex-1">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <p className="font-bold text-white">{username}</p>
-              <p className="text-xs text-custom-light-gray">{formatDate(created_at.date)}</p>
-              <p className="text-xs text-custom-light-gray">Comment on post #{post_id}</p>
-            </div>
-            
-            <button
-              onClick={toggleCensor}
-              className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${
-                is_censored
-                  ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'bg-red-500 hover:bg-red-600 text-white'
-              }`}
-            >
-              {is_censored ? 'Restore' : 'Censor'}
-            </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Avatar 
+            avatar={avatar} 
+            className="w-10 h-10"
+          />
+          <div>
+            <p className="font-medium text-custom-light-gray">{username}</p>
+            <p className="text-sm text-custom-light-gray">
+              {formatDate(created_at)}
+            </p>
           </div>
-          
-          <div className={`p-3 rounded ${is_censored ? 'bg-red-900/10 text-gray-400 italic' : 'text-white'}`}>
-            {content}
-          </div>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => onCensor(id, !is_censored)}
+            className={`px-3 py-1 rounded ${
+              is_censored
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-yellow-600 hover:bg-yellow-700'
+            } text-white`}
+          >
+            {is_censored ? 'Uncensor' : 'Censor'}
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
       </div>
-      
-      {is_censored && (
-        <div className="mt-2 text-sm text-yellow-400 italic">
-          This comment has been censored and is no longer visible to users.
-        </div>
-      )}
+      <div className={`${is_censored ? 'opacity-50' : ''}`}>
+        <p className="text-custom-light-gray">{content}</p>
+      </div>
     </div>
   );
 };

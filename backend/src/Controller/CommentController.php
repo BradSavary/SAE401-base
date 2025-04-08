@@ -44,10 +44,11 @@ class CommentController extends AbstractController
 
         $comments = $commentRepository->findByPost($postId);
         $baseUrl = $this->getParameter('base_url');
+        $uploadDir = $this->getParameter('upload_directory');
 
         $formattedComments = [];
         foreach ($comments as $comment) {
-            $formattedComments[] = $this->commentService->formatCommentDetails($comment, $baseUrl);
+            $formattedComments[] = $this->commentService->formatCommentDetails($comment, $baseUrl, $uploadDir);
         }
 
         return new JsonResponse(['comments' => $formattedComments]);
@@ -127,11 +128,12 @@ class CommentController extends AbstractController
             // Créer le commentaire
             $comment = $this->commentService->create($payload);
             $baseUrl = $this->getParameter('base_url');
+            $uploadDir = $this->getParameter('upload_directory');
 
             return new JsonResponse(
                 [
                     'message' => 'Commentaire créé avec succès',
-                    'comment' => $this->commentService->formatCommentDetails($comment, $baseUrl)
+                    'comment' => $this->commentService->formatCommentDetails($comment, $baseUrl, $uploadDir)
                 ],
                 Response::HTTP_CREATED
             );
@@ -176,11 +178,12 @@ class CommentController extends AbstractController
             try {
                 $updatedComment = $this->commentService->update($id, $content, $currentUser);
                 $baseUrl = $this->getParameter('base_url');
+                $uploadDir = $this->getParameter('upload_directory');
 
                 return new JsonResponse(
                     [
                         'message' => 'Commentaire mis à jour avec succès',
-                        'comment' => $this->commentService->formatCommentDetails($updatedComment, $baseUrl)
+                        'comment' => $this->commentService->formatCommentDetails($updatedComment, $baseUrl, $uploadDir)
                     ]
                 );
             } catch (\Exception $e) {
@@ -238,7 +241,8 @@ class CommentController extends AbstractController
         }
 
         $baseUrl = $this->getParameter('base_url');
-        return new JsonResponse($this->commentService->formatCommentDetails($comment, $baseUrl));
+        $uploadDir = $this->getParameter('upload_directory');
+        return new JsonResponse($this->commentService->formatCommentDetails($comment, $baseUrl, $uploadDir));
     }
 
     /**
@@ -249,10 +253,11 @@ class CommentController extends AbstractController
     {
         $comments = $commentRepository->findByUser($userId);
         $baseUrl = $this->getParameter('base_url');
+        $uploadDir = $this->getParameter('upload_directory');
 
         $formattedComments = [];
         foreach ($comments as $comment) {
-            $formattedComments[] = $this->commentService->formatCommentDetails($comment, $baseUrl);
+            $formattedComments[] = $this->commentService->formatCommentDetails($comment, $baseUrl, $uploadDir);
         }
 
         return new JsonResponse(['comments' => $formattedComments]);

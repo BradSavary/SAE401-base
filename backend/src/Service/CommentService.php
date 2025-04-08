@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Dto\Payload\CreateCommentPayload;
 use App\Entity\Comment;
+use App\Entity\CommentInteraction;
 use App\Entity\Post;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -92,6 +93,14 @@ class CommentService
             throw new \Exception('Vous n\'êtes pas autorisé à supprimer ce commentaire');
         }
 
+        // Supprimer les interactions liées au commentaire
+        $query = $this->entityManager->createQuery(
+            'DELETE FROM App\Entity\CommentInteraction ci WHERE ci.comment = :commentId'
+        );
+        $query->setParameter('commentId', $comment->getId());
+        $query->execute();
+
+        // Supprimer le commentaire
         $this->entityManager->remove($comment);
         $this->entityManager->flush();
     }
@@ -99,13 +108,13 @@ class CommentService
     /**
      * Formater les détails d'un commentaire pour l'API
      */
-    public function formatCommentDetails(Comment $comment, ?string $baseUrl = null): array
+    public function formatCommentDetails(Comment $comment, ?string $baseUrl = null, ?string $uploadDir = null): array
     {
         $user = $comment->getUser();
         $avatarUrl = null;
         
-        if ($baseUrl && $user->getAvatar()) {
-            $avatarUrl = $baseUrl . '/uploads/' . $user->getAvatar();
+        if ($baseUrl && $uploadDir && $user->getAvatar()) {
+            $avatarUrl = $baseUrl . '/' . $uploadDir . '/' . $user->getAvatar();
         }
 
         $createdAt = $comment->getCreatedAt();

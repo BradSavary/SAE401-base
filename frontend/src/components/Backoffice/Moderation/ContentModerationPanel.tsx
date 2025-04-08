@@ -131,6 +131,24 @@ const ContentModerationPanel: React.FC<ContentModerationPanelProps> = ({ type })
     }
   };
 
+  const handleDeleteContent = async (id: number) => {
+    try {
+      if (type === 'posts') {
+        await ModerationService.deletePost(id);
+      } else {
+        await ModerationService.deleteComment(id);
+      }
+      
+      // Mettre à jour l'état local après la suppression
+      setContent(prevContent => 
+        prevContent.filter(item => item.id !== id)
+      );
+      setTotalItems(prev => prev - 1);
+    } catch (error) {
+      console.error('Erreur lors de la suppression du contenu:', error);
+    }
+  };
+
   const handleSearch = (searchTerm: string) => {
     setSearch(searchTerm);
   };
@@ -157,7 +175,8 @@ const ContentModerationPanel: React.FC<ContentModerationPanelProps> = ({ type })
           <ContentList 
             items={content} 
             type={type} 
-            onCensor={handleCensorContent} 
+            onCensor={handleCensorContent}
+            onDelete={handleDeleteContent}
           />
           
           {hasMore && (
