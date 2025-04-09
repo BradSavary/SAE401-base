@@ -60,6 +60,7 @@ export default function PostList({ endpoint, className = '', posts: initialPosts
     const [hasMore, setHasMore] = useState<boolean>(true);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const loadingRef = useRef<boolean>(false);
+    const previousEndpointRef = useRef<string | undefined>(endpoint);
 
     const fetchPosts = useCallback(async (pageToLoad: number) => {
         if (loadingRef.current || !hasMore || !endpoint) return;
@@ -77,8 +78,6 @@ export default function PostList({ endpoint, className = '', posts: initialPosts
                     const newPosts = data.posts.filter((newPost: any) => 
                         !prevPosts.some(prevPost => prevPost.id === newPost.id)
                     );
-                    console.log(newPosts);
-                    console.log(pageToLoad);
                     return pageToLoad === 1 ? newPosts : [...prevPosts, ...newPosts];
                 });
                 setHasMore(data.next_page !== null);
@@ -94,12 +93,24 @@ export default function PostList({ endpoint, className = '', posts: initialPosts
         }
     }, [endpoint, hasMore]);
 
-    // Charger les posts initiaux
+    // Réinitialiser et recharger les posts lorsque l'endpoint change
     useEffect(() => {
-        if (endpoint && !initialPosts) {
+        if (endpoint && endpoint !== previousEndpointRef.current) {
+            setPosts([]);
+            setPage(1);
+            setHasMore(true);
+            setError(null);
+            previousEndpointRef.current = endpoint;
             fetchPosts(1);
         }
-    }, [endpoint, initialPosts, fetchPosts]);
+    }, [endpoint, fetchPosts]);
+
+    // Charger les posts initiaux
+    useEffect(() => {
+        if (endpoint && !initialPosts && posts.length === 0) {
+            fetchPosts(1);
+        }
+    }, [endpoint, initialPosts, fetchPosts, posts.length]);
 
     // Gestion du défilement
     useEffect(() => {
