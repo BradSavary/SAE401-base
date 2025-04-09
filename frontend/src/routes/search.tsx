@@ -5,6 +5,7 @@ import PostList from '../components/Post/PostList';
 import { ThreadsIcon } from '../ui/LogoIcon/threads';
 import FilterModal from '../components/Search/FilterModal';
 import SearchBar from '../components/Search/SearchBar';
+import { SearchSkeleton } from '../components/Search/SearchSkeleton';
 
 interface HashtagResult {
   id: number;
@@ -140,159 +141,161 @@ const Search = () => {
   };
   
   return (
-    <section className="bg-custom pb-15 flex flex-col w-full h-screen">
-      <Link to="/" className="self-center mt-6">
-        <ThreadsIcon size="large" className="self-center mb-6" />
-      </Link>
-      
-      <h1 className="text-custom-light-gray text-2xl font-bold mb-4 text-center">
-        {getSearchTitle()}
-      </h1>
-      
-      <div className="px-4 mb-6">
-        <div className="flex items-center">
-          <SearchBar className="flex-grow" defaultValue={query} />
-          <button
-            onClick={openFilterModal}
-            className="ml-3 bg-custom-dark-gray text-custom-light-gray border border-custom-gray rounded-md px-4 py-2 hover:bg-custom-gray transition flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
-            </svg>
-            Filters
-          </button>
+    <section className="bg-custom flex flex-col w-full min-h-screen">
+      <div className="w-full md:max-w-2xl md:mx-auto">
+        <Link to="/" className="self-center mt-6 flex justify-center">
+          <ThreadsIcon size="large" className="mb-6" />
+        </Link>
+        
+        <h1 className="text-custom-light-gray text-2xl font-bold mb-4 text-center">
+          {getSearchTitle()}
+        </h1>
+        
+        <div className="px-4 mb-6">
+          <div className="flex items-center">
+            <SearchBar className="flex-grow" defaultValue={query} />
+            <button
+              onClick={openFilterModal}
+              className="ml-3 bg-custom-dark-gray text-custom-light-gray border border-custom-gray rounded-md px-4 py-2 hover:bg-custom-gray transition flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
+              </svg>
+              Filters
+            </button>
+          </div>
+          
+          {/* Afficher les filtres actifs sous forme de tags */}
+          {(formData.type !== 'all' || formData.startDate || formData.endDate) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {formData.type !== 'all' && (
+                <div className="bg-custom-dark-gray text-custom-light-gray px-3 py-1 rounded-full text-sm flex items-center">
+                  Type: {formData.type}
+                </div>
+              )}
+              {formData.startDate && (
+                <div className="bg-custom-dark-gray text-custom-light-gray px-3 py-1 rounded-full text-sm flex items-center">
+                  From: {formData.startDate}
+                </div>
+              )}
+              {formData.endDate && (
+                <div className="bg-custom-dark-gray text-custom-light-gray px-3 py-1 rounded-full text-sm flex items-center">
+                  To: {formData.endDate}
+                </div>
+              )}
+
+              <Link 
+                to="/search" 
+                className="bg-custom-red text-white px-3 py-1 rounded-full text-sm flex items-center"
+              >
+                Clear filters
+              </Link>
+            </div>
+          )}
         </div>
         
-        {/* Afficher les filtres actifs sous forme de tags */}
-        {(formData.type !== 'all' || formData.startDate || formData.endDate) && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {formData.type !== 'all' && (
-              <div className="bg-custom-dark-gray text-custom-light-gray px-3 py-1 rounded-full text-sm flex items-center">
-                Type: {formData.type}
+        {isLoading ? (
+          <SearchSkeleton />
+        ) : (
+          <div className="px-4 bg-custom">
+            {/* Résultats des hashtags */}
+            {(formData.type === 'hashtags' || formData.type === 'all') && hashtags.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-white text-xl font-semibold mb-3">
+                  Hashtags {formData.type === 'all' ? `(${totalHashtags})` : ''}
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {hashtags.map(hashtag => (
+                    <Link 
+                      key={hashtag.id}
+                      to={`/search?q=%23${hashtag.name}`}
+                      className="bg-custom-dark-gray rounded-lg p-3 hover:bg-custom-gray transition"
+                    >
+                      <p className="text-custom-blue font-bold">#{hashtag.name}</p>
+                      <p className="text-custom-light-gray text-sm">{hashtag.post_count} posts</p>
+                    </Link>
+                  ))}
+                </div>
+                
+                {formData.type === 'all' && totalHashtags > hashtags.length && (
+                  <Link 
+                    to={`/search?q=${query}&type=hashtags`}
+                    className="block text-custom-blue text-center mt-3 hover:underline"
+                  >
+                    See all {totalHashtags} hashtags
+                  </Link>
+                )}
               </div>
             )}
-            {formData.startDate && (
-              <div className="bg-custom-dark-gray text-custom-light-gray px-3 py-1 rounded-full text-sm flex items-center">
-                From: {formData.startDate}
+            
+            {/* Résultats des utilisateurs */}
+            {(formData.type === 'users' || formData.type === 'all') && users.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-white text-xl font-semibold mb-3">
+                  Users {formData.type === 'all' ? `(${totalUsers})` : ''}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {users.map(user => (
+                    <Link 
+                      key={user.id}
+                      to={`/profile/${user.username}`}
+                      className="bg-custom-dark-gray rounded-lg p-3 flex items-center gap-3 hover:bg-custom-gray transition"
+                    >
+                      <img 
+                        src={user.avatar || '/default-avatar.webp'} 
+                        alt={user.username} 
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div>
+                        <p className={`font-bold ${user.is_blocked ? 'text-custom-red' : 'text-white'}`}>
+                          @{user.username}
+                        </p>
+                        {user.is_blocked && (
+                          <p className="text-custom-red text-sm">Account blocked</p>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                
+                {formData.type === 'all' && totalUsers > users.length && (
+                  <Link 
+                    to={`/search?q=${query}&type=users`}
+                    className="block text-custom-blue text-center mt-3 hover:underline"
+                  >
+                    See all {totalUsers} users
+                  </Link>
+                )}
               </div>
             )}
-            {formData.endDate && (
-              <div className="bg-custom-dark-gray text-custom-light-gray px-3 py-1 rounded-full text-sm flex items-center">
-                To: {formData.endDate}
+            
+            {/* Résultats des posts */}
+            {(formData.type === 'posts' || formData.type === 'all') && query && (
+              <div className='bg-custom'>
+                <h2 className="text-white text-xl font-semibold mb-3">
+                  Posts {totalPosts > 0 ? `(${totalPosts})` : ''}
+                </h2>
+                <PostList endpoint={`/search?q=${encodeURIComponent(query)}&type=posts${formData.startDate ? `&start_date=${formData.startDate}` : ''}${formData.endDate ? `&end_date=${formData.endDate}` : ''}`} />
               </div>
             )}
-
-            <Link 
-              to="/search" 
-              className="bg-custom-red text-white px-3 py-1 rounded-full text-sm flex items-center"
-            >
-              Clear filters
-            </Link>
+            
+            {totalHashtags === 0 && totalUsers === 0 && totalPosts === 0 && (
+              <div className="text-center text-custom-light-gray py-8">
+                {query ? `No results found for "${query}"` : 'Enter a search term to find content'}
+              </div>
+            )}
           </div>
         )}
+        
+        <FilterModal
+          isOpen={isFilterModalOpen}
+          onClose={closeFilterModal}
+          initialQuery={query}
+          initialType={formData.type as any}
+          initialStartDate={formData.startDate}
+          initialEndDate={formData.endDate}
+        />
       </div>
-      
-      {isLoading ? (
-        <div className="text-center text-custom-light-gray py-4">Loading results...</div>
-      ) : (
-        <div className="px-4 bg-custom pb-15">
-          {/* Résultats des hashtags */}
-          {(formData.type === 'hashtags' || formData.type === 'all') && hashtags.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-white text-xl font-semibold mb-3">
-                Hashtags {formData.type === 'all' ? `(${totalHashtags})` : ''}
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {hashtags.map(hashtag => (
-                  <Link 
-                    key={hashtag.id}
-                    to={`/search?q=%23${hashtag.name}`}
-                    className="bg-custom-dark-gray rounded-lg p-3 hover:bg-custom-gray transition"
-                  >
-                    <p className="text-custom-blue font-bold">#{hashtag.name}</p>
-                    <p className="text-custom-light-gray text-sm">{hashtag.post_count} posts</p>
-                  </Link>
-                ))}
-              </div>
-              
-              {formData.type === 'all' && totalHashtags > hashtags.length && (
-                <Link 
-                  to={`/search?q=${query}&type=hashtags`}
-                  className="block text-custom-blue text-center mt-3 hover:underline"
-                >
-                  See all {totalHashtags} hashtags
-                </Link>
-              )}
-            </div>
-          )}
-          
-          {/* Résultats des utilisateurs */}
-          {(formData.type === 'users' || formData.type === 'all') && users.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-white text-xl font-semibold mb-3">
-                Users {formData.type === 'all' ? `(${totalUsers})` : ''}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {users.map(user => (
-                  <Link 
-                    key={user.id}
-                    to={`/profile/${user.username}`}
-                    className="bg-custom-dark-gray rounded-lg p-3 flex items-center gap-3 hover:bg-custom-gray transition"
-                  >
-                    <img 
-                      src={user.avatar || '/default-avatar.webp'} 
-                      alt={user.username} 
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className={`font-bold ${user.is_blocked ? 'text-custom-red' : 'text-white'}`}>
-                        @{user.username}
-                      </p>
-                      {user.is_blocked && (
-                        <p className="text-custom-red text-sm">Account blocked</p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-              
-              {formData.type === 'all' && totalUsers > users.length && (
-                <Link 
-                  to={`/search?q=${query}&type=users`}
-                  className="block text-custom-blue text-center mt-3 hover:underline"
-                >
-                  See all {totalUsers} users
-                </Link>
-              )}
-            </div>
-          )}
-          
-          {/* Résultats des posts */}
-          {(formData.type === 'posts' || formData.type === 'all') && query && (
-            <div className='bg-custom'>
-              <h2 className="text-white text-xl font-semibold mb-3">
-                Posts {totalPosts > 0 ? `(${totalPosts})` : ''}
-              </h2>
-              <PostList endpoint={`/search?q=${encodeURIComponent(query)}&type=posts${formData.startDate ? `&start_date=${formData.startDate}` : ''}${formData.endDate ? `&end_date=${formData.endDate}` : ''}`} />
-            </div>
-          )}
-          
-          {totalHashtags === 0 && totalUsers === 0 && totalPosts === 0 && (
-            <div className="text-center text-custom-light-gray py-8">
-              {query ? `No results found for "${query}"` : 'Enter a search term to find content'}
-            </div>
-          )}
-        </div>
-      )}
-      
-      <FilterModal
-        isOpen={isFilterModalOpen}
-        onClose={closeFilterModal}
-        initialQuery={query}
-        initialType={formData.type as any}
-        initialStartDate={formData.startDate}
-        initialEndDate={formData.endDate}
-      />
     </section>
   );
 };

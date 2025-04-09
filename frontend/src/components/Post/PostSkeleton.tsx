@@ -2,7 +2,7 @@ import React from 'react';
 
 const PostSkeleton = () => {
     return (
-        <div className="animate-pulse flex flex-col space-y-4 p-4 border border-gray-200 rounded-lg">
+        <div className="animate-pulse flex flex-col space-y-4 p-4 border border-gray-200 rounded-lg md:mx-auto md:max-w-xl">
             <div className="flex space-x-4">
                 <div className="rounded-full bg-gray-300 h-10 w-10"></div>
                 <div className="flex-1 space-y-2">
@@ -13,6 +13,11 @@ const PostSkeleton = () => {
             <div className="h-4 bg-gray-300 rounded"></div>
             <div className="h-4 bg-gray-300 rounded w-5/6"></div>
             <div className="h-4 bg-gray-300 rounded w-4/5"></div>
+            <div className="flex justify-between mt-2">
+                <div className="h-6 w-6 bg-gray-300 rounded-full"></div>
+                <div className="h-6 w-6 bg-gray-300 rounded-full"></div>
+                <div className="h-6 w-6 bg-gray-300 rounded-full"></div>
+            </div>
         </div>
     );
 };

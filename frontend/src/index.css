@@ -8,11 +8,11 @@
     --clr-blue: #0070F9;
     --clr-light-gray: #cecece;
     --clr-red: #E22517;
+    --clr-dark-gray: #1c1c1c;
 
     --custom-bg-color: var(--clr-dark);
     --custom-text-color: var(--clr-light);
     --custom-ratio: 5/2;
-
   }
 }
 
@@ -60,6 +60,14 @@
 
   .border-custome-light-gray{
     border-color: var(--clr-light-gray);
+  }
+  
+  .bg-custom-dark-gray {
+    background-color: var(--clr-dark-gray);
+  }
+
+  .text-custom-dark-gray {
+    color: var(--clr-dark-gray);
   }
 
   .scrollbar-thin {
@@ -118,5 +126,29 @@
 
   a.mention:hover {
     text-decoration: underline;
+  }
+  
+  /* Nouvelles classes pour le responsive */
+  .desktop-container {
+    @apply max-w-3xl mx-auto w-full;
+  }
+  
+  /* Sur les grands écrans, ajoutons une marge à gauche pour compenser la sidebar */
+  @media (min-width: 768px) {
+    .md-with-sidebar {
+      margin-left: 220px;
+    }
+    
+    .content-container {
+      max-width: 680px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+  
+  /* Container pour le contenu principal sur desktop */
+  .main-content {
+    @apply w-full;
+    @apply md:max-w-2xl md:mx-auto;
   }
 }

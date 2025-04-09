@@ -155,11 +155,11 @@ export default function OtherProfile() {
       <Banner banner={user.banner || defaultBanner} className="w-full overflow-hidden max-h-35" />
       <div className="flex flex-row justify-around text-center text-custom-light-gray pt-5">
       <div className="flex flex-col items-center">
-        <p className="font-bold text-xl text-custom-dark-gray">{followers}</p>
+        <p className="font-bold text-xl text-custom">{followers}</p>
         <p className="text-sm text-custom-light-gray">Followers</p>
       </div>
       <div className="flex flex-col items-center">
-        <p className="font-bold text-xl text-custom-dark-gray">{following}</p>
+        <p className="font-bold text-xl text-custom">{following}</p>
         <p className="text-sm text-custom-light-gray">Following</p>
       </div>
       </div>

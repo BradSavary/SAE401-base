@@ -3,6 +3,7 @@ import { apiRequest } from '../../lib/api-request';
 import Post from './Post';
 import { enrichPostsWithBlockingInfo } from '../../lib/block-service';
 import { enrichPostsWithReadOnlyInfo } from '../../lib/post-service';
+import PostSkeletonList from './PostSkeletonList';
 
 interface MediaItem {
     url: string;
@@ -167,7 +168,7 @@ export default function PostList({ endpoint, className = '', posts: initialPosts
     };
 
     if (loading && posts.length === 0) {
-        return <div className="text-center text-custom-light-gray">Loading...</div>;
+        return <PostSkeletonList className="px-4" />;
     }
 
     if (error) {
@@ -178,12 +179,10 @@ export default function PostList({ endpoint, className = '', posts: initialPosts
         return <div className="text-center text-custom-light-gray">No posts found</div>;
     }
 
+    const combinedClassName = `overflow-y-auto scrollbar-thin h-full ${className || ''}`;
+
     return (
-        <div 
-            ref={containerRef} 
-            className={`overflow-y-auto scrollbar-thin ${className || ''}`} 
-            style={{ maxHeight: '80vh' }}
-        >
+        <div ref={containerRef} className={combinedClassName}>
             {posts.map((post) => (
                 <Post
                     key={post.id}
@@ -192,7 +191,7 @@ export default function PostList({ endpoint, className = '', posts: initialPosts
                 />
             ))}
             {loading && posts.length > 0 && (
-                <div className="text-center text-custom-light-gray py-4">Loading more posts...</div>
+                <PostSkeletonList count={1} className="px-4" />
             )}
         </div>
     );

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ThreadsIcon } from '../ui/LogoIcon/threads';
 import PostList from '../components/Post/PostList';
 import RefreshButton from '../ui/Refresh/index';
+import Tabs from '../ui/Tabs/Tabs';
+import PageHeader from '../components/Header/PageHeader';
 
 const Feed = () => {
-    const [activeTab, setActiveTab] = useState<'foryou' | 'subscribement'>('foryou');
+    const [activeTab, setActiveTab] = useState<string>('foryou');
     const [userId, setUserId] = useState<string | null>(null);
     
     useEffect(() => {
@@ -23,34 +24,49 @@ const Feed = () => {
         return '/posts'; // Fallback si pas d'utilisateur connecté
     };
 
-    const handleTabChange = (tab: 'foryou' | 'subscribement') => {
-        if (tab === 'subscribement' && !userId) {
+    const handleTabChange = (tabId: string) => {
+        if (tabId === 'subscribement' && !userId) {
             alert('Veuillez vous connecter pour voir vos abonnements');
             return;
         }
-        setActiveTab(tab);
+        setActiveTab(tabId);
     };
 
+    // Configuration des onglets
+    const tabs = [
+        { id: 'foryou', label: 'For you' },
+        { id: 'subscribement', label: 'Subscribement' }
+    ];
+
     return (
-        <section className="bg-custom pb-15 flex flex-col w-full h-screen">
-            <RefreshButton onRefresh={() => window.location.reload()} />
-            <ThreadsIcon size="large" className="self-center my-6" />
-            
-            <div className="flex flex-row justify-around text-center text-custom-light-gray pt-5">
-                <p
-                    className={`cursor-pointer pb-5 w-half ${activeTab === 'foryou' ? 'border-b-4 border-custom-light-gray' : ''}`}
-                    onClick={() => handleTabChange('foryou')}
-                >
-                    For you
-                </p>
-                <p
-                    className={`cursor-pointer pb-5 w-half ${activeTab === 'subscribement' ? 'border-b-4 border-custom-light-gray' : ''}`}
-                    onClick={() => handleTabChange('subscribement')}
-                >
-                    Subscribement
-                </p>
+        <section className="bg-custom flex flex-col w-full h-screen overflow-hidden">
+            <div className="md:max-w-xl md:mx-auto w-full flex flex-col h-full">
+                <RefreshButton onRefresh={() => window.location.reload()} />
+                
+                {/* En-tête fixe avec logo et tabs */}
+                <div className="flex flex-col">
+                    <PageHeader 
+                        logoSize="large"
+                        showBackButton={false}
+                        className="my-6"
+                    />
+                    
+                    <Tabs 
+                        tabs={tabs}
+                        activeTab={activeTab}
+                        onTabChange={handleTabChange}
+                        tabWidth="half"
+                        className="pt-2"
+                    />
+                </div>
+                
+                {/* Zone de contenu avec défilement */}
+                <div className="flex-grow overflow-hidden mb-16 md:mb-4">
+                    <div className="h-full overflow-auto">
+                        <PostList endpoint={getEndpoint()} className="md:px-4" />
+                    </div>
+                </div>
             </div>
-            <PostList endpoint={getEndpoint()} />
         </section>
     );
 };

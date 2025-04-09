@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlockedUser, getBlockedUsers, toggleBlockUser } from '../lib/block-service';
 import Button from '../ui/Button/Button';
+import { BlockedUsersSkeleton } from '../components/Profile/BlockedUsersSkeleton';
 
 // Redéfinir l'interface pour corriger la propriété blocked_at
 interface BlockedUserDisplay {
@@ -49,11 +50,7 @@ export default function BlockedUsers() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p>Loading...</p>
-      </div>
-    );
+    return <BlockedUsersSkeleton />;
   }
 
   return (

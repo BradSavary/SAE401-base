@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { ArrowIcon } from '../ui/Icon/arrow';
 import { checkReadOnlyStatus, toggleReadOnlyMode } from '../lib/user-settings-service';
 import ToggleSwitch from '../ui/Form/ToggleSwitch';
+import { EditProfileSkeleton } from '../components/Profile/EditProfileSkeleton';
 
 interface User {
     user_id: number;
@@ -111,7 +112,7 @@ export default function EditProfile() {
     };
 
     if (!user) {
-        return <div>Loading...</div>;
+        return <EditProfileSkeleton />;
     }
 
     return (

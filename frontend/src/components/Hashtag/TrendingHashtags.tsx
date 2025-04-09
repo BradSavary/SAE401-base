@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../../lib/api-request';
+import { HashtagsSkeleton } from './HashtagsSkeleton';
 
 interface HashtagData {
   id: number;
@@ -49,7 +50,12 @@ const TrendingHashtags: React.FC<TrendingHashtagsProps> = ({
   }, [limit]);
 
   if (isLoading) {
-    return <div className="text-center text-custom-light-gray p-4">Loading trending hashtags...</div>;
+    return (
+      <div className="bg-custom rounded-lg p-4">
+        <h2 className="text-white text-xl font-semibold mb-4">Trending Hashtags</h2>
+        <HashtagsSkeleton columns={1} count={limit} />
+      </div>
+    );
   }
 
   if (error) {

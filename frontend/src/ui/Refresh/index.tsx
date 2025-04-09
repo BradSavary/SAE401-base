@@ -18,13 +18,13 @@ const RefreshButton = ({ onRefresh }: RefreshButtonProps) => {
 
     return (
         <div
-            className={`fixed self-center z-20 transition-opacity transition-transform duration-300 ${
-                showButton ? 'opacity-100 translate-y-25' : 'top-0 opacity-0 pointer-events-none'
+            className={`fixed left-1/2 transform -translate-x-1/2 md:translate-x-0 md:left-auto md:right-4 top-4 z-20 transition-opacity transition-transform duration-300 ${
+                showButton ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
         >
             <button
                 onClick={onRefresh}
-                className="flex  bg-custom-blue text-white px-4 py-2 rounded-full shadow-md hover:bg-custom-dark-blue cursor-pointer"
+                className="flex items-center gap-2 bg-custom-blue text-white px-4 py-2 rounded-full shadow-md hover:bg-custom-dark-blue cursor-pointer"
             >
                 <RefreshIcon size='xsmall'/>
                 Refresh
