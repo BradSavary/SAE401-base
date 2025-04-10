@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export const apiRequest = async <T>(endpoint: string, config?: RequestInit): Promise<Response> => {
     try {
@@ -11,7 +11,10 @@ export const apiRequest = async <T>(endpoint: string, config?: RequestInit): Pro
             },
         };
 
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+        // S'assurer que l'endpoint commence par un slash
+        const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+        const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, options);
         return response;
     } catch (error) {
         throw new Error(`API request failed: ${error}`);

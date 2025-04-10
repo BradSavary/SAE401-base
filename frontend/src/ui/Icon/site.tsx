@@ -8,6 +8,6 @@ interface siteIconProps {
 
 export function siteIcon({ className, alt, size }: siteIconProps) {
     return (
-        <img src='../../../public/siteicon.svg' alt={alt} className={ iconStyles({size, className})} />
+        <img src="/~savary23/SAE401/CycleC/dist/siteicon.svg" alt={alt} className={ iconStyles({size, className})} />
     );
 };

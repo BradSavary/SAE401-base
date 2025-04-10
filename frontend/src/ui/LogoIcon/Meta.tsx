@@ -8,6 +8,6 @@ interface MetaIconProps {
 
 export function MetaIcon({ className, alt, size }: MetaIconProps) {
     return (
-        <img src='../../../public/Meta.svg' alt={alt} className={ iconStyles({size, className})} />
+        <img src="/~savary23/SAE401/CycleC/dist/Meta.svg" alt={alt} className={ iconStyles({size, className})} />
     );
 };

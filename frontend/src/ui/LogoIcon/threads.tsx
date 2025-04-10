@@ -8,6 +8,6 @@ interface ThreadsIconProps {
 
 export function ThreadsIcon({ className, alt, size }: ThreadsIconProps) {
     return (
-        <img src='../../../public/threads-logo.svg' alt={alt} className={ iconStyles({size, className})} />
+        <img src="/~savary23/SAE401/CycleC/dist/threads-logo.svg" alt={alt} className={ iconStyles({size, className})} />
     );
 };

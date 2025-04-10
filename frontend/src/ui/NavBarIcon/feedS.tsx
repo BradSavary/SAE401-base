@@ -5,6 +5,6 @@ interface FeedSIconProps {
 
 export function FeedSIcon({ className, alt }: FeedSIconProps) {
     return (
-        <img src="../../../public/feedS.svg" alt={alt} className={className} />
+        <img src="/~savary23/SAE401/CycleC/dist/feedS.svg" alt={alt} className={className} />
     );
 };

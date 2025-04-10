@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import svgr from 'vite-plugin-svgr';
 
 export default defineConfig({
-  base: "/",
+  base: "/~savary23/SAE401/CycleC/dist/",
   plugins: [react(), tailwindcss(), svgr()],
   preview: {
    port: 5173,

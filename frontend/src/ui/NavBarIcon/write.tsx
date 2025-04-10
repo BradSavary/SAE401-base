@@ -5,6 +5,6 @@ interface WriteIconProps {
 
 export function WriteIcon({ className, alt }: WriteIconProps) {
     return (
-        <img src='../../../public/write.svg' alt={alt} className={className} />
+        <img src="/~savary23/SAE401/CycleC/dist/write.svg" alt={alt} className={className} />
     );
 };

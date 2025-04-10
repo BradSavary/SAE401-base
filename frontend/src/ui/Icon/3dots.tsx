@@ -9,6 +9,6 @@ interface dotsIconProps {
 
 export function DotsIcon({ className, alt, size, onClick }: dotsIconProps) {
     return (
-        <img onClick={onClick} src='../../../public/3dots.svg' alt={alt} className={ iconStyles({size, className})} />
+        <img onClick={onClick} src="/~savary23/SAE401/CycleC/dist/3dots.svg" alt={alt} className={ iconStyles({size, className})} />
     );
 };

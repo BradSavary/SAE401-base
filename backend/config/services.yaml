@@ -5,7 +5,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     upload_directory: 'uploads'
-    base_url: 'http://localhost:8080/'
+    base_url: 'https://mmi.unilim.fr/~savary23/SAE401/CycleC/backend/public'
 
 services:
     # default configuration for services in *this* file

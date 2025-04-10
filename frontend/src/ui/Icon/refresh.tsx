@@ -8,6 +8,6 @@ interface refreshIconProps {
 
 export function RefreshIcon({ className, alt, size }: refreshIconProps) {
     return (
-        <img src='../../../public/refresh.svg' alt={alt} className={ iconStyles({size, className})} />
+        <img src="/~savary23/SAE401/CycleC/dist/refresh.svg" alt={alt} className={ iconStyles({size, className})} />
     );
 };

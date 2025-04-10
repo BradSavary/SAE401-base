@@ -8,6 +8,6 @@ interface placeIconProps {
 
 export function placeIcon({ className, alt, size }: placeIconProps) {
     return (
-        <img src='../../../public/placeicon.svg' alt={alt} className={ iconStyles({size, className})} />
+        <img src="/~savary23/SAE401/CycleC/dist/placeicon.svg" alt={alt} className={ iconStyles({size, className})} />
     );
 };

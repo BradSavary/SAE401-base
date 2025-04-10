@@ -8,6 +8,6 @@ interface ArrowIconProps {
 
 export function ArrowIcon({ className, alt, size }: ArrowIconProps) {
     return (
-        <img src='../../../public/arrow.svg' alt={alt} className={ iconStyles({size, className})} />
+        <img src="/~savary23/SAE401/CycleC/dist/arrow.svg" alt={alt} className={ iconStyles({size, className})} />
     );
 };

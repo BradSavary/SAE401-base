@@ -8,6 +8,6 @@ interface settingsIconProps {
 
 export function SettingsIcon({ className, alt, size }: settingsIconProps) {
     return (
-        <img src='../../../public/settings.svg' alt={alt} className={ iconStyles({size, className})} />
+        <img src="/~savary23/SAE401/CycleC/dist/settings.svg" alt={alt} className={ iconStyles({size, className})} />
     );
 };

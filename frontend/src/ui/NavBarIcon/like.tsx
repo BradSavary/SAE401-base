@@ -5,6 +5,6 @@ interface LikeIconProps {
 
 export function LikeIcon({ className, alt }: LikeIconProps) {
     return (
-        <img src='../../../public/like.svg' alt={alt} className={className} />
+        <img src="/~savary23/SAE401/CycleC/dist/like.svg" alt={alt} className={className} />
     );
 };

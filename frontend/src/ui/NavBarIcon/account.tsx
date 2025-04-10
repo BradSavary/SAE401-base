@@ -5,6 +5,6 @@ interface AccountIconProps {
 
 export function AccountIcon({ className, alt }: AccountIconProps) {
     return (
-        <img src='../../../public/account.svg' alt={alt} className={className} />
+        <img src="/~savary23/SAE401/CycleC/dist/account.svg" alt={alt} className={className} />
     );
 };

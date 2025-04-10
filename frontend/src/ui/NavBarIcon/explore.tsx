@@ -5,6 +5,6 @@ interface ExploreIconProps {
 
 export function ExploreIcon({ className, alt }: ExploreIconProps) {
     return (
-        <img src="../../../public/explore.svg" alt={alt} className={className} />
+        <img src="/~savary23/SAE401/CycleC/dist/explore.svg" alt={alt} className={className} />
     );
 };
