@@ -6,7 +6,9 @@ services:
       - "8080:8080" # backend
       - "8090:8090" # frontend
     volumes:
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - type: bind
+        source: ./docker/nginx/default.conf
+        target: /etc/nginx/conf.d/default.conf
       - ./backend:/app/backend
       - ./frontend:/app/frontend
 
