@@ -31,7 +31,7 @@ export default function OtherProfile() {
   const [isBlockedBy, setIsBlockedBy] = useState<boolean>(false); // Utilisateur courant bloqué par cet utilisateur
   const [followers, setFollowers] = useState<number>(0);
   const [following, setFollowing] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'posts' | 'responses'>('posts'); // Onglet actif
+  const [activeTab, setActiveTab] = useState<'posts' | 'responses' | 'retweets'>('posts'); // Onglet actif
 
   const checkSubscriptionStatus = async (userId: number) => {
     try {
@@ -150,6 +150,12 @@ export default function OtherProfile() {
   const isUserUnavailable = isBlocked || isBlockedBy;
   const isAdminBlocked = user.is_blocked;
 
+  // Configuration des onglets (remplacer les onglets existants)
+  const tabs = [
+    { id: 'posts', label: 'Posts' },
+    { id: 'retweets', label: 'Retweets' }
+  ];
+
   return (
     <div className="flex flex-col text-custom bg-custom">
       <Banner banner={user.banner || defaultBanner} className="w-full overflow-hidden max-h-35" />
@@ -233,11 +239,17 @@ export default function OtherProfile() {
             >
               Responses
             </p>
+            <p
+              className={`cursor-pointer pb-5 w-half ${activeTab === 'retweets' ? 'border-b-4 border-custom-light-gray' : ''}`}
+              onClick={() => setActiveTab('retweets')}
+            >
+              Retweets
+            </p>
           </div>
           {activeTab === 'posts' ? (
-            <PostList endpoint={`/posts/user/${user.user_id}`} className='mb-15'/>
+            <PostList endpoint={`/posts/user/${user.user_id}`} className="mb-16" />
           ) : (
-            <PostList endpoint={`/responses/user/${user.user_id}`} className='mb-15'/>
+            <PostList endpoint={`/user/${user.user_id}/retweets`} className="mb-16" />
           )}
         </>
       )}

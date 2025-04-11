@@ -78,7 +78,8 @@ export default function Profile() {
     // Configuration des onglets
     const tabs = [
         { id: 'posts', label: 'Your posts' },
-        { id: 'likes', label: 'Your likes' }
+        { id: 'likes', label: 'Your likes' },
+        { id: 'retweets', label: 'Your retweets' }
     ];
 
     const handleTabChange = (tabId: string) => {
@@ -132,8 +133,10 @@ export default function Profile() {
                 {/* Liste des posts selon l'onglet actif */}
                 {activeTab === 'posts' ? (
                     <PostList endpoint={`/posts/user/${user_id}`} className="mb-16" />
-                ) : (
+                ) : activeTab === 'likes' ? (
                     <PostList endpoint={`/posts/liked/${user_id}`} className="mb-16" />
+                ) : (
+                    <PostList endpoint={`/user/${user_id}/retweets`} className="mb-16" />
                 )}
             </div>
         </div>

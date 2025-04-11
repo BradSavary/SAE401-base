@@ -6,6 +6,7 @@ use App\Dto\Payload\CreatePostPayload;
 use App\Entity\Post;
 use App\Entity\User;
 use App\Entity\PostMedia;
+use App\Entity\Retweet;
 use App\Service\PostService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,52 +22,155 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use App\Repository\UserBlockRepository;
+use App\Repository\RetweetRepository;
 
 final class PostController extends AbstractController
 {
-    private PostService $PostService;
+    private PostService $postService;
+    private EntityManagerInterface $entityManager;
 
-    public function __construct(PostService $PostService)
+    public function __construct(PostService $postService, EntityManagerInterface $entityManager)
     {
-        $this->PostService = $PostService;
+        $this->postService = $postService;
+        $this->entityManager = $entityManager;
     }
 
     #[Route('/posts', name: 'posts.index', methods: ['GET'])]
-    public function index(Request $request, PostRepository $postRepository, UserBlockRepository $userBlockRepository): Response
+    public function index(
+        Request $request, 
+        PostRepository $postRepository, 
+        UserBlockRepository $userBlockRepository,
+        RetweetRepository $retweetRepository
+    ): Response
     {
-        $page = (int) $request->query->get('page', 1);
-        $limit = 15;
-
-        /** @var User $currentUser */
+        // Récupérer les paramètres de pagination
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 20;
+        $offset = ($page - 1) * $limit;
+        
+        // Récupérer les posts paginés
+        $paginator = $postRepository->paginateAllOrderedByLatest($offset, $limit);
+        $posts = iterator_to_array($paginator);
+        
+        // Récupérer l'utilisateur connecté
         $currentUser = $this->getUser();
         
-        // Récupérer tous les posts
-        $allPosts = $postRepository->findBy([], ['created_at' => 'DESC']);
-        
-        // Filtrer les posts des utilisateurs bloqués
+        // Récupérer également les retweets (uniquement si un utilisateur est connecté)
+        $retweets = [];
         if ($currentUser) {
-            $blockedUsers = $userBlockRepository->findBlockedUsers($currentUser);
-            $blockedUserIds = array_map(fn($block) => $block->getBlocked()->getId(), $blockedUsers);
-            
-            $allPosts = array_filter($allPosts, function($post) use ($blockedUserIds) {
-                return !in_array($post->getUser()->getId(), $blockedUserIds);
-            });
+            // Simplifier pour cette version en n'affichant que les retweets de l'utilisateur actuel
+            $retweets = $this->entityManager->getRepository(Retweet::class)
+                ->findBy(['user' => $currentUser], ['created_at' => 'DESC'], $limit);
         }
         
-        $paginatedData = $this->PostService->paginatePosts($allPosts, $page, $limit);
-
-        $baseUrl = $this->getParameter('base_url');
+        // Préparation des données formatées
+        $baseUrl = $request->getSchemeAndHttpHost();
         $uploadDir = $this->getParameter('upload_directory');
-
+        
         $formattedPosts = [];
-        foreach ($paginatedData['posts'] as $post) {
-            $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+        
+        // Traiter les posts normaux
+        foreach ($posts as $post) {
+            $author = $post->getUser();
+            
+            // Vérifier si l'auteur est bloqué par l'administration
+            if ($author->getIsBlocked()) {
+                continue;
+            }
+            
+            // Vérifier les blocages entre utilisateurs
+            $isUserBlockedOrBlocking = false;
+            if ($currentUser) {
+                $isUserBlockedOrBlocking = 
+                    $userBlockRepository->isBlocked($author, $currentUser) || 
+                    $userBlockRepository->isBlocked($currentUser, $author);
+            }
+            
+            // Ajouter le post s'il n'y a pas de blocage
+            if (!$isUserBlockedOrBlocking) {
+                $postData = $this->postService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+                
+                // Ajouter le statut de retweet par l'utilisateur si connecté
+                if ($currentUser) {
+                    // Vérifier si un retweet existe pour ce post et cet utilisateur
+                    $userRetweet = $retweetRepository->findOneBy([
+                        'originalPost' => $post,
+                        'user' => $currentUser
+                    ]);
+                    $postData['user_retweeted'] = $userRetweet !== null;
+                    $postData['retweet_count'] = $retweetRepository->countByPost($post->getId());
+                }
+                
+                $formattedPosts[] = $postData;
+            }
         }
-
-        return $this->json([
+        
+        // Traiter les retweets
+        foreach ($retweets as $retweet) {
+            $post = $retweet->getOriginalPost();
+            $author = $post->getUser();
+            $retweeter = $retweet->getUser();
+            
+            // Vérifier si l'auteur est bloqué par l'administration
+            if ($author->getIsBlocked()) {
+                continue;
+            }
+            
+            // Vérifier les blocages entre utilisateurs
+            $isUserBlockedOrBlocking = false;
+            if ($currentUser) {
+                $isUserBlockedOrBlocking = 
+                    $userBlockRepository->isBlocked($author, $currentUser) || 
+                    $userBlockRepository->isBlocked($currentUser, $author);
+            }
+            
+            // Ajouter le post retweeté s'il n'y a pas de blocage
+            if (!$isUserBlockedOrBlocking) {
+                $postData = $this->postService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+                
+                // Ajouter les informations sur le retweet
+                $postData['retweeted_by'] = [
+                    'user_id' => $retweeter->getId(),
+                    'username' => $retweeter->getUsername(),
+                    'retweeted_at' => [
+                        'date' => $retweet->getCreatedAt()->format('Y-m-d H:i:s'),
+                        'timezone_type' => 3,
+                        'timezone' => $retweet->getCreatedAt()->getTimezone()->getName(),
+                    ]
+                ];
+                
+                // Ajouter le statut de retweet par l'utilisateur
+                $postData['user_retweeted'] = true;
+                $postData['retweet_count'] = $retweetRepository->countByPost($post->getId());
+                
+                $formattedPosts[] = $postData;
+            }
+        }
+        
+        // Trier les résultats par date (les plus récents en premier)
+        usort($formattedPosts, function($a, $b) {
+            $dateA = isset($a['retweeted_by']) 
+                ? new \DateTime($a['retweeted_by']['retweeted_at']['date']) 
+                : new \DateTime($a['created_at']['date']);
+            
+            $dateB = isset($b['retweeted_by']) 
+                ? new \DateTime($b['retweeted_by']['retweeted_at']['date']) 
+                : new \DateTime($b['created_at']['date']);
+            
+            return $dateB <=> $dateA;
+        });
+        
+        // Limiter les résultats pour respecter la pagination
+        $formattedPosts = array_slice($formattedPosts, 0, $limit);
+        
+        // Calculer s'il y a une page suivante
+        $nextPage = $page + 1;
+        $totalPosts = count($paginator);
+        $hasNext = ($offset + $limit) < $totalPosts || count($retweets) > 0;
+        
+        return new JsonResponse([
             'posts' => $formattedPosts,
-            'previous_page' => $paginatedData['previous_page'],
-            'next_page' => $paginatedData['next_page'],
+            'next_page' => $hasNext ? $nextPage : null
         ]);
     }
 
@@ -212,14 +316,14 @@ final class PostController extends AbstractController
 
         $page = (int) $request->query->get('page', 1);
         $limit = 15;
-        $paginatedData = $this->PostService->paginatePosts($allPosts, $page, $limit);
+        $paginatedData = $this->postService->paginatePosts($allPosts, $page, $limit);
 
         $baseUrl = $this->getParameter('base_url');
         $uploadDir = $this->getParameter('upload_directory');
 
         $formattedPosts = [];
         foreach ($paginatedData['posts'] as $post) {
-            $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+            $formattedPosts[] = $this->postService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
         }
 
         return new JsonResponse([
@@ -288,7 +392,7 @@ final class PostController extends AbstractController
     
         $page = (int) $request->query->get('page', 1);
         $limit = 15; // Nombre de posts par page
-        $paginatedData = $this->PostService->paginatePosts($likedPosts, $page, $limit);
+        $paginatedData = $this->postService->paginatePosts($likedPosts, $page, $limit);
     
         $baseUrl = $this->getParameter('base_url');
         $uploadDir = $this->getParameter('upload_directory');
@@ -297,7 +401,7 @@ final class PostController extends AbstractController
         $formattedPosts = [];
         foreach ($paginatedData['posts'] as $interaction) {
             $post = $interaction->getPost();
-            $formattedPosts[] = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+            $formattedPosts[] = $this->postService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
         }
     
         return new JsonResponse([
@@ -325,7 +429,7 @@ final class PostController extends AbstractController
             $uploadDir = $this->getParameter('upload_directory');
             
             // Formatage du post pour l'API
-            $formattedPost = $this->PostService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
+            $formattedPost = $this->postService->formatPostDetails($post, $currentUser, $baseUrl, $uploadDir);
             
             return new JsonResponse($formattedPost, JsonResponse::HTTP_OK);
         } catch (\Exception $e) {

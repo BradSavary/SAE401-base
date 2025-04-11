@@ -275,7 +275,7 @@ const Search = () => {
                 <h2 className="text-white text-xl font-semibold mb-3">
                   Posts {totalPosts > 0 ? `(${totalPosts})` : ''}
                 </h2>
-                <PostList endpoint={`/search?q=${encodeURIComponent(query)}&type=posts${formData.startDate ? `&start_date=${formData.startDate}` : ''}${formData.endDate ? `&end_date=${formData.endDate}` : ''}`} />
+                <PostList className='mb-15' endpoint={`/search?q=${encodeURIComponent(query)}&type=posts${formData.startDate ? `&start_date=${formData.startDate}` : ''}${formData.endDate ? `&end_date=${formData.endDate}` : ''}`} />
               </div>
             )}
             
