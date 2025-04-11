@@ -390,7 +390,7 @@ function Post({ post, onDelete }: PostProps) {
             {post.retweeted_by && (
                 <div className="flex items-center mb-2 text-custom-light-gray text-xs">
                     <RetweetIcon size="small" className="mr-1" />
-                    <Link to={`/profile/${post.retweeted_by.user_id}`} className="hover:underline">
+                    <Link to={`/profile/${post.retweeted_by.username    }`} className="hover:underline">
                         {post.retweeted_by.username}
                     </Link> &nbsp;a retweeté
                 </div>
